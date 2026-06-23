@@ -83,32 +83,73 @@ def api_predict():
     # Simulación Monte Carlo
     sim_data = StatsEngine.simulate_match(home_stats, away_stats)
     
+    # Datos reales de equipos
+    home_rank = home_stats.get('fifa_rank', 50)
+    away_rank = away_stats.get('fifa_rank', 50)
+    home_form = home_stats.get('form', ['?']*5)
+    away_form = away_stats.get('form', ['?']*5)
+    home_form_str = " → ".join(home_form)
+    away_form_str = " → ".join(away_form)
+    home_key = home_stats.get('key_player', 'Desconocido')
+    away_key = away_stats.get('key_player', 'Desconocido')
+    home_style = home_stats.get('style', '')
+    away_style = away_stats.get('style', '')
+    home_wc = home_stats.get('wc_history', '')
+    away_wc = away_stats.get('wc_history', '')
+
     # Prompt enriquecido para la IA
     prompt = f"""
-    Eres FutboltAI, un analista de fútbol experto. Genera un análisis detallado para el partido {home} vs {away} en la competición {league}.
+    Eres FutboltAI, un analista experto del Mundial 2026. Genera un análisis DETALLADO y PRECISO para el partido {home} vs {away} en {league}.
     
-    Métricas de Simulación Monte Carlo (10,000 iteraciones):
-    - Probabilidad de Victoria Local ({home}): {sim_data['probabilities']['home_win']}%
-    - Probabilidad de Empate: {sim_data['probabilities']['draw']}%
-    - Probabilidad de Victoria Visitante ({away}): {sim_data['probabilities']['away_win']}%
-    - Marcador más probable: {sim_data['exact_score']['score']} (Probabilidad: {sim_data['exact_score']['probability']}%)
-    - Tiros de esquina esperados: {sim_data['expected_values']['total_corners']}
-    - Tarjetas amarillas esperadas: {sim_data['expected_values']['total_cards']}
-    - Disparos al arco esperados: {sim_data['expected_values']['total_shots']}
-    - Goles esperados Local: {sim_data['expected_values']['home_goals']} | Goles esperados Visitante: {sim_data['expected_values']['away_goals']}
-    - Probabilidad Over 2.5 Goles: {sim_data['probabilities']['over_2_5_goals']}%
-    - Probabilidad Ambos Marcan (BTTS): {sim_data['probabilities']['btts']}%
+    ═══════════════════════════════════════════════════════
+    📊 SIMULACIÓN MONTE CARLO (10,000 iteraciones):
+    ═══════════════════════════════════════════════════════
+    • Victoria {home}: {sim_data['probabilities']['home_win']}%
+    • Empate: {sim_data['probabilities']['draw']}%  
+    • Victoria {away}: {sim_data['probabilities']['away_win']}%
+    • Marcador más probable: {sim_data['exact_score']['score']} (Prob: {sim_data['exact_score']['probability']}%)
+    • xG Local: {sim_data['expected_values']['home_goals']} | xG Visitante: {sim_data['expected_values']['away_goals']}
+    • Over 2.5 Goles: {sim_data['probabilities']['over_2_5_goals']}%
+    • Ambos Marcan (BTTS): {sim_data['probabilities']['btts']}%
+    • Córners esperados: {sim_data['expected_values']['total_corners']}
+    • Tarjetas amarillas: {sim_data['expected_values']['total_cards']}
     
-    Estadísticas Históricas por Partido:
-    - {home}: Goles = {home_stats['attack']['goals_per_game']}, Córners = {home_stats['attack']['corners']}, Tarjetas Amarillas = {home_stats['summary']['yellow_cards_per_game']}, Disparos al arco = {home_stats['attack']['shots_on_target']}
-    - {away}: Goles = {away_stats['attack']['goals_per_game']}, Córners = {away_stats['attack']['corners']}, Tarjetas Amarillas = {away_stats['summary']['yellow_cards_per_game']}, Disparos al arco = {away_stats['attack']['shots_on_target']}
-
-    Escribe tu predicción en Español con un tono analítico profesional y usando las siguientes secciones:
-    - ### 🏟️ Análisis Táctico y de Forma: Compara cómo llegan y sus formaciones
-    - ### 📐 Pronóstico de Córners y Tarjetas: Explica los tiros de esquina y tarjetas amarillas esperadas basándote en la simulación
-    - ### ⚽ Pronóstico de Goles y Disparos: Explica el total de goles, probabilidad de BTTS y disparos al arco
-    - ### 🔮 Conclusión y Recomendación de Apuesta: Da un veredicto final fundamentado
+    ═══════════════════════════════════════════════════════
+    🏆 PERFIL REAL DE EQUIPOS (FIFA WC 2026):
+    ═══════════════════════════════════════════════════════
+    
+    🏠 {home} (Ranking FIFA: #{home_rank}):
+    • Forma reciente (últimos 5): {home_form_str}
+    • Goles por partido: {home_stats['attack']['goals_per_game']} | Concedidos: {home_stats['defense']['goals_conceded']}
+    • Tiros al arco: {home_stats['attack']['shots_on_target']} | Córners: {home_stats['attack']['corners']}
+    • Estilo de juego: {home_style}
+    • Jugador clave: {home_key}
+    • Historia en Mundiales: {home_wc}
+    
+    ✈️ {away} (Ranking FIFA: #{away_rank}):
+    • Forma reciente (últimos 5): {away_form_str}
+    • Goles por partido: {away_stats['attack']['goals_per_game']} | Concedidos: {away_stats['defense']['goals_conceded']}
+    • Tiros al arco: {away_stats['attack']['shots_on_target']} | Córners: {away_stats['attack']['corners']}
+    • Estilo de juego: {away_style}
+    • Jugador clave: {away_key}
+    • Historia en Mundiales: {away_wc}
+    
+    ═══════════════════════════════════════════════════════
+    Escribe en ESPAÑOL con tono analítico profesional:
+    
+    ### 🏟️ Análisis Táctico y de Forma
+    (Compara estilos, forma reciente, ventajas/desventajas tácticas, jugadores clave)
+    
+    ### ⚽ Pronóstico de Goles y Marcador
+    (xG, Over/Under, BTTS, marcador más probable y por qué)
+    
+    ### 📐 Córners y Tarjetas
+    (Análisis de la simulación Monte Carlo)
+    
+    ### 🔮 Conclusión Final
+    (Veredicto claro basado en ranking FIFA, forma real y simulación. Menciona al jugador decisivo)
     """
+
     
     ai_response = predictor.get_prediction({
         "message": prompt,
@@ -119,7 +160,11 @@ def api_predict():
         "sim_data": sim_data,
         "ai_prediction": ai_response,
         "home_crest": fetcher.get_crest(home),
-        "away_crest": fetcher.get_crest(away)
+        "away_crest": fetcher.get_crest(away),
+        "home_rank": home_stats.get('fifa_rank', ''),
+        "away_rank": away_stats.get('fifa_rank', ''),
+        "home_form": home_stats.get('form', []),
+        "away_form": away_stats.get('form', []),
     })
 
 @app.route('/worldcup')

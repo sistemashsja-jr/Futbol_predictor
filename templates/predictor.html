@@ -372,17 +372,18 @@
         <div style="margin-bottom:16px;">
             <div class="field-label" style="margin-bottom:10px;">Partidos Rápidos</div>
             <div class="quick-teams">
+                <button class="quick-team-btn" onclick="setMatch('Argentina','Francia','WORLD_CUP_2026')">🏆 Argentina vs Francia</button>
+                <button class="quick-team-btn" onclick="setMatch('Brasil','España','WORLD_CUP_2026')">🏆 Brasil vs España</button>
+                <button class="quick-team-btn" onclick="setMatch('Inglaterra','Alemania','WORLD_CUP_2026')">🏆 Inglaterra vs Alemania</button>
+                <button class="quick-team-btn" onclick="setMatch('Países Bajos','Portugal','WORLD_CUP_2026')">🏆 Países Bajos vs Portugal</button>
+                <button class="quick-team-btn" onclick="setMatch('Colombia','Uruguay','WORLD_CUP_2026')">🏆 Colombia vs Uruguay</button>
+                <button class="quick-team-btn" onclick="setMatch('México','Estados Unidos','WORLD_CUP_2026')">🏆 México vs EE.UU.</button>
+                <button class="quick-team-btn" onclick="setMatch('Canadá','Bosnia','WORLD_CUP_2026')">🏆 Canadá vs Bosnia</button>
+                <button class="quick-team-btn" onclick="setMatch('Marruecos','Senegal','WORLD_CUP_2026')">🏆 Marruecos vs Senegal</button>
+                <button class="quick-team-btn" onclick="setMatch('Japón','Corea del Sur','WORLD_CUP_2026')">🏆 Japón vs Corea del Sur</button>
+                <button class="quick-team-btn" onclick="setMatch('Noruega','Bélgica','WORLD_CUP_2026')">🏆 Noruega vs Bélgica</button>
                 <button class="quick-team-btn" onclick="setMatch('Real Madrid CF','FC Barcelona','PD')">🇪🇸 Real Madrid vs Barça</button>
                 <button class="quick-team-btn" onclick="setMatch('Liverpool FC','Arsenal FC','PL')">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Liverpool vs Arsenal</button>
-                <button class="quick-team-btn" onclick="setMatch('Inter Milan','Juventus FC','SA')">🇮🇹 Inter vs Juventus</button>
-                <button class="quick-team-btn" onclick="setMatch('FC Bayern München','Borussia Dortmund','BL1')">🇩🇪 Bayern vs Dortmund</button>
-                <button class="quick-team-btn" onclick="setMatch('Paris Saint-Germain FC','AS Monaco FC','FL1')">🇫🇷 PSG vs Monaco</button>
-                <button class="quick-team-btn" onclick="setMatch('River Plate','Boca Juniors','ARG')">🇦🇷 River vs Boca</button>
-                <button class="quick-team-btn" onclick="setMatch('Flamengo','Palmeiras','BRA')">🇧🇷 Flamengo vs Palmeiras</button>
-                <button class="quick-team-btn" onclick="setMatch('Manchester City FC','Manchester United FC','PL')">🏴󠁧󠁢󠁥󠁮󠁧󠁿 City vs United</button>
-                <button class="quick-team-btn" onclick="setMatch('Argentina','Chile','WORLD_CUP_2026')">🏆 Mundial: Argentina vs Chile</button>
-                <button class="quick-team-btn" onclick="setMatch('España','Italia','WORLD_CUP_2026')">🏆 Mundial: España vs Italia</button>
-                <button class="quick-team-btn" onclick="setMatch('Inglaterra','Países Bajos','WORLD_CUP_2026')">🏆 Mundial: Inglaterra vs Holanda</button>
             </div>
         </div>
 
@@ -658,13 +659,28 @@ function renderResult(home, away, data) {
     const probableScore = sim.exact_score.score;
     const probableScorePct = sim.exact_score.probability;
 
+    // Form badge helper
+    function formBadge(r) {
+        const colors = {W:'#00e87a',D:'#f59e0b',L:'#ef4444'};
+        const labels = {W:'V',D:'E',L:'D'};
+        return `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:${colors[r]||'#666'};color:#000;font-size:11px;font-weight:900;">${labels[r]||r}</span>`;
+    }
+    const homeRank = data.home_rank || '';
+    const awayRank = data.away_rank || '';
+    const homeFormArr = data.home_form || [];
+    const awayFormArr = data.away_form || [];
+    const homeFormHTML = homeFormArr.map(formBadge).join(' ');
+    const awayFormHTML = awayFormArr.map(formBadge).join(' ');
+
     // Match header
     document.getElementById('matchHeader').innerHTML = `
         <div class="match-teams-display">
             <div class="match-team-block">
                 <img src="${homeCrest}" style="width:70px;height:70px;object-fit:contain;margin-bottom:8px;" alt="${home}">
                 <div class="match-team-name">${home}</div>
-                <div class="match-team-sub">Local</div>
+                ${homeRank ? `<div style="font-size:11px;color:#f59e0b;font-weight:700;margin-top:2px;">🌍 FIFA #${homeRank}</div>` : ''}
+                <div style="display:flex;gap:4px;justify-content:center;margin-top:6px;">${homeFormHTML}</div>
+                <div class="match-team-sub" style="margin-top:4px;">Local</div>
             </div>
             <div class="match-score-block">
                 <div class="match-score-display">${probableScore}</div>
@@ -673,7 +689,9 @@ function renderResult(home, away, data) {
             <div class="match-team-block">
                 <img src="${awayCrest}" style="width:70px;height:70px;object-fit:contain;margin-bottom:8px;" alt="${away}">
                 <div class="match-team-name">${away}</div>
-                <div class="match-team-sub">Visitante</div>
+                ${awayRank ? `<div style="font-size:11px;color:#f59e0b;font-weight:700;margin-top:2px;">🌍 FIFA #${awayRank}</div>` : ''}
+                <div style="display:flex;gap:4px;justify-content:center;margin-top:6px;">${awayFormHTML}</div>
+                <div class="match-team-sub" style="margin-top:4px;">Visitante</div>
             </div>
         </div>
         <div>
