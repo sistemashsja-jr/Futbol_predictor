@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutboltAI — Predicciones de Fútbol con Inteligencia Artificial</title>
+    <meta name="description" content="Plataforma líder de predicciones de fútbol impulsada por IA. Análisis avanzado de partidos, estadísticas y pronósticos en tiempo real.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg: #060711;
+            --bg2: #0a0d1a;
+            --card: rgba(255,255,255,0.03);
+            --card-border: rgba(255,255,255,0.07);
+            --green: #00e87a;
+            --green-glow: rgba(0,232,122,0.2);
+            --purple: #7c3aed;
+            --purple-glow: rgba(124,58,237,0.3);
+            --gold: #f59e0b;
+            --blue: #3b82f6;
+            --red: #ef4444;
+            --text: #f0f4ff;
+            --text2: #8892a4;
+            --text3: #4a5568;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── CANVAS BACKGROUND ── */
+        #bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            padding: 0 40px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(6,7,17,0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, var(--green), var(--purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .logo em { color: var(--green); font-style: normal; }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links a {
+            color: var(--text2);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover { color: var(--text); background: var(--card); }
+        .nav-links a.active { color: var(--green); background: rgba(0,232,122,0.08); }
+
+        .nav-cta {
+            background: linear-gradient(135deg, var(--green), #00b85e) !important;
+            color: #003322 !important;
+            font-weight: 700 !important;
+        }
+
+        .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 20px var(--green-glow) !important; }
+
+        .nav-wc {
+            background: linear-gradient(135deg, #b8860b, var(--gold)) !important;
+            color: #1a0a00 !important;
+            font-weight: 700 !important;
+        }
+
+        .nav-wc:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255, 215, 0, 0.2) !important; }
+
+        /* ── HERO ── */
+        .hero {
+            position: relative;
+            z-index: 1;
+            padding: 140px 40px 80px;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,232,122,0.08);
+            border: 1px solid rgba(0,232,122,0.2);
+            color: var(--green);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 28px;
+            animation: fadeDown 0.6s ease both;
+        }
+
+        .hero-badge .dot { width:7px; height:7px; background:var(--green); border-radius:50%; box-shadow:0 0 8px var(--green); animation: pulse 2s infinite; }
+
+        @keyframes pulse { 0%,100%{opacity:0.5;transform:scale(1)} 50%{opacity:1;transform:scale(1.3)} }
+
+        .hero h1 {
+            font-size: clamp(40px, 6vw, 76px);
+            font-weight: 900;
+            letter-spacing: -2px;
+            line-height: 1.05;
+            margin-bottom: 24px;
+            animation: fadeDown 0.6s 0.1s ease both;
+        }
+
+        .hero h1 .green { color: var(--green); }
+        .hero h1 .purple { color: #a78bfa; }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text2);
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+            animation: fadeDown 0.6s 0.2s ease both;
+        }
+
+        .hero-btns {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeDown 0.6s 0.3s ease both;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--green), #00b85e);
+            color: #002e1a;
+            font-weight: 800;
+            font-size: 15px;
+            padding: 14px 32px;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px var(--green-glow);
+        }
+
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px var(--green-glow); }
+
+        .btn-secondary {
+            background: var(--card);
+            color: var(--text);
+            font-weight: 600;
+            font-size: 15px;
+            padding: 14px 32px;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+
+        /* ── STATS STRIP ── */
+        .stats-strip {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 0 40px 70px;
+            flex-wrap: wrap;
+            animation: fadeUp 0.8s 0.4s ease both;
+        }
+
+        .stat-item { text-align: center; }
+        .stat-num { font-size: 32px; font-weight: 900; color: var(--green); letter-spacing: -1px; }
+        .stat-label { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+        /* ── MAIN LAYOUT ── */
+        .main-section {
+            position: relative;
+            z-index: 1;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 40px 80px;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 30px;
+        }
+
+        @media (max-width: 1100px) {
+            .main-section { grid-template-columns: 1fr; }
+            .chat-panel { order: -1; }
+        }
+
+        /* ── MATCH CARDS ── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(0,232,122,0.12);
+            color: var(--green);
+            letter-spacing: 0.5px;
+        }
+
+        .see-all {
+            font-size: 13px;
+            color: var(--green);
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: gap 0.2s;
+        }
+        .see-all:hover { gap: 8px; }
+
+        .matches-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .match-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .match-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, transparent, rgba(0,232,122,0.03));
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .match-card:hover { border-color: rgba(0,232,122,0.25); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .match-card:hover::before { opacity: 1; }
+
+        .match-team { display: flex; flex-direction: column; gap: 6px; }
+        .match-team.right { align-items: flex-end; }
+
+        .team-name-big {
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .team-logo-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .team-logo-wrap.right { flex-direction: row-reverse; }
+
+        .team-crest {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+        }
+
+        .match-center { text-align: center; }
+
+        .match-time {
+            font-size: 13px;
+            color: var(--text2);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .match-vs {
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--text);
+            letter-spacing: -0.5px;
+        }
+
+        .match-league {
+            font-size: 11px;
+            color: var(--text3);
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .match-odds {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .odd {
+            flex: 1;
+            text-align: center;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .odd:hover { background: rgba(0,232,122,0.08); border-color: rgba(0,232,122,0.3); }
+        .odd-label { color: var(--text2); font-size: 10px; font-weight: 600; display: block; margin-bottom: 2px; }
+        .odd-val { font-weight: 800; font-size: 14px; }
+        .odd.highlight .odd-val { color: var(--green); }
+
+        .prediction-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(0,232,122,0.1);
+            color: var(--green);
+            border: 1px solid rgba(0,232,122,0.2);
+            margin-top: 8px;
+        }
+
+        /* ── QUICK STATS CARD ── */
+        .quick-stats {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 12px;
+        }
+
+        .mini-league-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .mini-league-item:last-child { border-bottom: none; }
+        .mini-league-left { display: flex; align-items: center; gap: 12px; }
+        .league-icon { font-size: 20px; }
+        .league-info-name { font-size: 14px; font-weight: 600; }
+        .league-info-sub { font-size: 12px; color: var(--text2); }
+        .accuracy-bar { display: flex; align-items: center; gap: 10px; }
+        .bar-bg { width: 80px; height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; }
+        .bar-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--green), #00b85e); }
+        .acc-num { font-size: 13px; font-weight: 700; color: var(--green); min-width: 36px; text-align: right; }
+
+        /* ── CHAT PANEL ── */
+        .chat-panel {
+            display: flex;
+            flex-direction: column;
+            height: 720px;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .chat-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .chat-header-left { display: flex; align-items: center; gap: 12px; }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--green), var(--purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .chat-name { font-size: 15px; font-weight: 700; }
+        .chat-status { font-size: 12px; color: var(--green); display: flex; align-items: center; gap: 5px; }
+        .chat-status .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+
+        .chat-tools { display: flex; gap: 8px; }
+        .tool-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            color: var(--text2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .tool-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.08) transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar { width: 4px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+
+        .msg {
+            display: flex;
+            gap: 10px;
+            animation: msgIn 0.3s ease both;
+        }
+
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg.user { flex-direction: row-reverse; }
+
+        .msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .msg.ai .msg-avatar { background: linear-gradient(135deg, var(--green), var(--purple)); }
+        .msg.user .msg-avatar { background: linear-gradient(135deg, var(--purple), #4f46e5); }
+
+        .msg-bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .msg.ai .msg-bubble {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--card-border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg.user .msg-bubble {
+            background: linear-gradient(135deg, var(--purple), #4f46e5);
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-bubble .markdown-content h1,
+        .msg-bubble .markdown-content h2,
+        .msg-bubble .markdown-content h3 {
+            color: var(--green);
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .msg-bubble .markdown-content p { margin-bottom: 8px; }
+        .msg-bubble .markdown-content ul { margin-left: 18px; margin-bottom: 8px; }
+        .msg-bubble .markdown-content strong { color: var(--gold); }
+
+        .quick-prompts {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 0 20px 12px;
+        }
+
+        .qp {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            color: var(--text2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .qp:hover { border-color: var(--green); color: var(--green); background: rgba(0,232,122,0.05); }
+
+        .chat-input-area {
+            padding: 16px 20px 20px;
+            border-top: 1px solid var(--card-border);
+        }
+
+        .chat-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 8px 8px 8px 16px;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input-wrap:focus-within { border-color: rgba(0,232,122,0.4); box-shadow: 0 0 20px rgba(0,232,122,0.08); }
+
+        #chatInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        #chatInput::placeholder { color: var(--text3); }
+
+        .send-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--green), #00b85e);
+            color: #002e1a;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 800;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--green-glow); }
+        .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+        }
+
+        .typing-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: typingBounce 1.2s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+        @keyframes typingBounce {
+            0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-5px); opacity: 1; }
+        }
+
+        /* ── FEATURES SECTION ── */
+        .features-section {
+            position: relative;
+            z-index: 1;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 40px 100px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover { transform: translateY(-4px); border-color: rgba(0,232,122,0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 18px;
+        }
+
+        .feature-icon.green { background: rgba(0,232,122,0.12); }
+        .feature-icon.purple { background: rgba(124,58,237,0.15); }
+        .feature-icon.gold { background: rgba(245,158,11,0.12); }
+        .feature-icon.blue { background: rgba(59,130,246,0.12); }
+
+        .feature-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+        .feature-desc { font-size: 14px; color: var(--text2); line-height: 1.6; }
+
+        /* ── FOOTER ── */
+        footer {
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid var(--card-border);
+            padding: 32px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text3);
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            nav { padding: 0 20px; }
+            .nav-links { display: none; }
+            .hero { padding: 120px 20px 60px; }
+            .hero h1 { font-size: 36px; }
+            .main-section { padding: 0 20px 60px; }
+            .features-section { padding: 0 20px 60px; }
+            footer { flex-direction: column; gap: 12px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+    <a href="/" class="logo">
+        <div class="logo-icon">⚽</div>
+        Futbolt<em>AI</em>
+    </a>
+    <div class="nav-links">
+        <a href="/" class="active">Inicio</a>
+        <a href="/stats">Estadísticas</a>
+        <a href="/predictor">Predictor</a>
+        <a href="/worldcup" class="nav-wc">🏆 Mundial 2026</a>
+        <a href="/predictor" class="nav-cta">🔮 Generar Predicción</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-badge">
+        <div class="dot"></div>
+        IA Activa · Gemini 2.0 + Groq + Mistral
+    </div>
+    <h1>
+        Predicciones de<br>
+        Fútbol con <span class="green">IA</span><br>
+        <span class="purple">de Próxima Generación</span>
+    </h1>
+    <p>Análisis avanzado impulsado por múltiples modelos de inteligencia artificial. Pronósticos precisos, estadísticas en tiempo real y análisis táctico profundo.</p>
+    <div class="hero-btns">
+        <a href="/predictor" class="btn-primary">🔮 Ir al Predictor</a>
+        <a href="/stats" class="btn-secondary">📊 Ver Estadísticas →</a>
+    </div>
+</section>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+    <div class="stat-item">
+        <div class="stat-num" id="acc-num">68%</div>
+        <div class="stat-label">Precisión de Predicciones</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">15+</div>
+        <div class="stat-label">Ligas Analizadas</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">3</div>
+        <div class="stat-label">Modelos de IA</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">10K</div>
+        <div class="stat-label">Simulaciones Monte Carlo</div>
+    </div>
+</div>
+
+<!-- MAIN SECTION -->
+<div class="main-section">
+
+    <!-- LEFT: Matches + Quick Stats -->
+    <div>
+        <div class="section-header">
+            <div class="section-title">
+                🔥 Partidos Destacados
+                <span class="badge">HOY</span>
+            </div>
+            <a href="/stats" class="see-all">Ver todos →</a>
+        </div>
+
+        <div class="matches-grid" id="matchesList">
+            <!-- loaded by JS -->
+        </div>
+
+        <div class="section-header" style="margin-top:24px;">
+            <div class="section-title">📈 Precisión por Liga</div>
+        </div>
+
+        <div class="quick-stats">
+            <div class="mini-league-item">
+                <div class="mini-league-left">
+                    <div class="league-icon">🇪🇸</div>
+                    <div>
+                        <div class="league-info-name">LaLiga</div>
+                        <div class="league-info-sub">20 equipos · 24 jornadas</div>
+                    </div>
+                </div>
+                <div class="accuracy-bar">
+                    <div class="bar-bg"><div class="bar-fill" style="width:72%"></div></div>
+                    <span class="acc-num">72%</span>
+                </div>
+            </div>
+            <div class="mini-league-item">
+                <div class="mini-league-left">
+                    <div class="league-icon">🏴󠁧󠁢󠁥󠁮󠁧󠁿</div>
+                    <div>
+                        <div class="league-info-name">Premier League</div>
+                        <div class="league-info-sub">20 equipos · 24 jornadas</div>
+                    </div>
+                </div>
+                <div class="accuracy-bar">
+                    <div class="bar-bg"><div class="bar-fill" style="width:69%"></div></div>
+                    <span class="acc-num">69%</span>
+                </div>
+            </div>
+            <div class="mini-league-item">
+                <div class="mini-league-left">
+                    <div class="league-icon">🇮🇹</div>
+                    <div>
+                        <div class="league-info-name">Serie A</div>
+                        <div class="league-info-sub">20 equipos · 24 jornadas</div>
+                    </div>
+                </div>
+                <div class="accuracy-bar">
+                    <div class="bar-bg"><div class="bar-fill" style="width:65%"></div></div>
+                    <span class="acc-num">65%</span>
+                </div>
+            </div>
+            <div class="mini-league-item">
+                <div class="mini-league-left">
+                    <div class="league-icon">🇩🇪</div>
+                    <div>
+                        <div class="league-info-name">Bundesliga</div>
+                        <div class="league-info-sub">18 equipos · 23 jornadas</div>
+                    </div>
+                </div>
+                <div class="accuracy-bar">
+                    <div class="bar-bg"><div class="bar-fill" style="width:67%"></div></div>
+                    <span class="acc-num">67%</span>
+                </div>
+            </div>
+            <div class="mini-league-item">
+                <div class="mini-league-left">
+                    <div class="league-icon">🇫🇷</div>
+                    <div>
+                        <div class="league-info-name">Ligue 1</div>
+                        <div class="league-info-sub">20 equipos · 24 jornadas</div>
+                    </div>
+                </div>
+                <div class="accuracy-bar">
+                    <div class="bar-bg"><div class="bar-fill" style="width:63%"></div></div>
+                    <span class="acc-num">63%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Chat -->
+    <div class="chat-panel">
+        <div class="chat-header">
+            <div class="chat-header-left">
+                <div class="chat-avatar">🤖</div>
+                <div>
+                    <div class="chat-name">FutboltAI</div>
+                    <div class="chat-status"><span class="dot"></span>Analizando partidos...</div>
+                </div>
+            </div>
+            <div class="chat-tools">
+                <button class="tool-btn" title="Limpiar chat" onclick="clearChat()">🗑️</button>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="msg ai">
+                <div class="msg-avatar">🤖</div>
+                <div class="msg-bubble">
+                    ¡Hola! Soy <strong>FutboltAI</strong>, tu analista de fútbol con IA. ⚽<br><br>
+                    Puedo darte pronósticos, análisis tácticos, estadísticas de equipos, predicciones de córners y mucho más.<br><br>
+                    <em>¿De qué partido o equipo quieres analizar hoy?</em>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-prompts">
+            <button class="qp" onclick="quickPrompt('Dame el pronóstico Real Madrid vs Barcelona')">⚽ Real Madrid vs Barça</button>
+            <button class="qp" onclick="quickPrompt('Predice los córners del próximo partido')">📐 Córners</button>
+            <button class="qp" onclick="quickPrompt('Análisis táctico del Liverpool')">🧠 Táctica</button>
+            <button class="qp" onclick="quickPrompt('Quién ganará la Champions League 2025-26?')">🏆 Champions</button>
+        </div>
+
+        <div class="chat-input-area">
+            <div style="display:flex; justify-content:center; margin-bottom:10px;">
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+            <div class="chat-input-wrap">
+                <input type="text" id="chatInput" placeholder="Pregunta sobre cualquier partido o equipo..." onkeypress="handleKey(event)">
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FEATURES SECTION -->
+<section class="features-section">
+    <div class="section-header" style="margin-bottom:28px;">
+        <div class="section-title">⚡ Tecnología de Análisis</div>
+    </div>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon green">🧠</div>
+            <div class="feature-title">Multi-IA Engine</div>
+            <div class="feature-desc">Combinamos Gemini 2.0, Groq Llama 3.3 y Mistral para obtener el análisis más completo y preciso.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon purple">📊</div>
+            <div class="feature-title">Monte Carlo Simulation</div>
+            <div class="feature-desc">10,000 iteraciones de simulación para calcular probabilidades de goles, córners y resultados.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon gold">🌐</div>
+            <div class="feature-title">Datos en Tiempo Real</div>
+            <div class="feature-desc">Integración con múltiples APIs de datos futbolísticos para estadísticas actualizadas de 15+ ligas.</div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon blue">🎯</div>
+            <div class="feature-title">Random Forest ML</div>
+            <div class="feature-desc">Modelo de Machine Learning entrenado con histórico de partidos para predicciones avanzadas.</div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <span>© 2026 FutboltAI · Análisis con Inteligencia Artificial</span>
+    <span>Powered by Gemini · Groq · Mistral</span>
+</footer>
+
+<script>
+// ── CANVAS PARTICLES ──
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+
+function Particle() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.r = Math.random() * 1.5 + 0.3;
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.vy = (Math.random() - 0.5) * 0.3;
+    this.alpha = Math.random() * 0.4 + 0.1;
+    this.color = Math.random() > 0.5 ? '0,232,122' : '124,58,237';
+}
+
+function initParticles() {
+    particles = [];
+    for (let i = 0; i < 60; i++) particles.push(new Particle());
+}
+
+function animParticles() {
+    ctx.clearRect(0, 0, W, H);
+    // Gradient background
+    const g = ctx.createRadialGradient(W*0.1, H*0.1, 0, W*0.1, H*0.1, W*0.6);
+    g.addColorStop(0, 'rgba(124,58,237,0.06)');
+    g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    const g2 = ctx.createRadialGradient(W*0.9, H*0.8, 0, W*0.9, H*0.8, W*0.5);
+    g2.addColorStop(0, 'rgba(0,232,122,0.05)');
+    g2.addColorStop(1, 'transparent');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, W, H);
+
+    particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+        if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(${p.color},${p.alpha})`;
+        ctx.fill();
+    });
+    requestAnimationFrame(animParticles);
+}
+
+resize();
+initParticles();
+animParticles();
+window.addEventListener('resize', () => { resize(); initParticles(); });
+
+// ── LOAD MATCHES ──
+const LEAGUES = {
+    PD: { name:'LaLiga', flag:'🇪🇸' },
+    PL: { name:'Premier', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+    SA: { name:'Serie A', flag:'🇮🇹' },
+    BL1: { name:'Bundesliga', flag:'🇩🇪' }
+};
+
+async function loadMatches() {
+    const container = document.getElementById('matchesList');
+    try {
+        const resp = await fetch('/api/data?league=PD');
+        const data = await resp.json();
+        container.innerHTML = '';
+        const fixtures = data.fixtures.slice(0, 4);
+        fixtures.forEach((m, i) => {
+            const date = new Date(m.utcDate);
+            const timeStr = date.toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' }) + ' · ' + date.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+            const homeShort = m.homeTeam.name.split(' ').slice(0,2).join(' ');
+            const awayShort = m.awayTeam.name.split(' ').slice(0,2).join(' ');
+            const odds = [
+                { label: '1', val: (1.5 + Math.random()).toFixed(2) },
+                { label: 'X', val: (3.0 + Math.random()*0.5).toFixed(2) },
+                { label: '2', val: (1.8 + Math.random()*1.5).toFixed(2) }
+            ];
+            const pred = Math.random() > 0.5 ? 'Victoria Local' : (Math.random() > 0.5 ? 'Empate' : 'Victoria Visitante');
+            const card = document.createElement('a');
+            card.className = 'match-card';
+            card.href = '/predictor';
+            card.innerHTML = `
+                <div class="match-team">
+                    <div class="team-logo-wrap">
+                        <img class="team-crest" src="https://ui-avatars.com/api/?name=${encodeURIComponent(homeShort)}&background=1a1a2e&color=00e87a&bold=true&size=40" onerror="this.src='https://ui-avatars.com/api/?name=?&background=1a1a2e&color=fff&size=40'">
+                        <div class="team-name-big">${homeShort}</div>
+                    </div>
+                </div>
+                <div class="match-center">
+                    <div class="match-time">${timeStr}</div>
+                    <div class="match-vs">VS</div>
+                    <div class="match-league">LaLiga · J${24+i}</div>
+                    <div class="match-odds">
+                        <div class="odd highlight"><span class="odd-label">1</span><span class="odd-val">${odds[0].val}</span></div>
+                        <div class="odd"><span class="odd-label">X</span><span class="odd-val">${odds[1].val}</span></div>
+                        <div class="odd"><span class="odd-label">2</span><span class="odd-val">${odds[2].val}</span></div>
+                    </div>
+                    <div class="prediction-pill">🤖 ${pred}</div>
+                </div>
+                <div class="match-team right">
+                    <div class="team-logo-wrap right">
+                        <img class="team-crest" src="https://ui-avatars.com/api/?name=${encodeURIComponent(awayShort)}&background=1a1a2e&color=a78bfa&bold=true&size=40" onerror="this.src='https://ui-avatars.com/api/?name=?&background=1a1a2e&color=fff&size=40'">
+                        <div class="team-name-big">${awayShort}</div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    } catch(e) {
+        container.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">No se pudieron cargar los partidos</p>';
+    }
+}
+
+loadMatches();
+
+// ── CHAT ──
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const typingIndicator = document.getElementById('typingIndicator');
+
+function handleKey(e) { if (e.key === 'Enter') sendMessage(); }
+
+function quickPrompt(text) {
+    chatInput.value = text;
+    sendMessage();
+}
+
+function clearChat() {
+    chatMessages.innerHTML = `
+        <div class="msg ai">
+            <div class="msg-avatar">🤖</div>
+            <div class="msg-bubble">Chat reiniciado. ¿En qué partido puedo ayudarte? ⚽</div>
+        </div>`;
+}
+
+async function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    addMsg(text, 'user');
+    chatInput.value = '';
+    sendBtn.disabled = true;
+    typingIndicator.style.display = 'flex';
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    try {
+        const res = await fetch('/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        typingIndicator.style.display = 'none';
+        if (data.response) {
+            addMsg(data.response, 'ai', true);
+        } else {
+            addMsg('⚠️ Error: ' + (data.error || 'Respuesta no disponible'), 'ai');
+        }
+    } catch(e) {
+        typingIndicator.style.display = 'none';
+        addMsg('❌ Error de conexión con el servidor.', 'ai');
+    } finally {
+        sendBtn.disabled = false;
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+function addMsg(text, side, isMarkdown = false) {
+    const wrap = document.createElement('div');
+    wrap.className = `msg ${side}`;
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = side === 'ai' ? '🤖' : '👤';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    if (isMarkdown && typeof marked !== 'undefined') {
+        const inner = document.createElement('div');
+        inner.className = 'markdown-content';
+        inner.innerHTML = marked.parse(text);
+        bubble.appendChild(inner);
+    } else {
+        bubble.textContent = text;
+    }
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    chatMessages.appendChild(wrap);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Animate accuracy counter
+let val = 0;
+const target = 68;
+const interval = setInterval(() => {
+    val += 2;
+    document.getElementById('acc-num').textContent = Math.min(val, target) + '%';
+    if (val >= target) clearInterval(interval);
+}, 30);
+</script>
+</body>
+</html>

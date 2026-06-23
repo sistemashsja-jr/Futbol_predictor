@@ -1,0 +1,8 @@
+google-genai
+requests
+python-dotenv
+flask
+openai
+anthropic
+groq
+mistralai
