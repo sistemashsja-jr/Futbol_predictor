@@ -6,3 +6,9 @@ openai
 anthropic
 groq
 mistralai
+pandas
+numpy
+scipy
+scikit-learn
+soccerdata
+lxml

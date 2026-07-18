@@ -116,11 +116,16 @@ class FootballDataFetcher:
 
     def _get_complete_table_data(self):
         return {
+            # ── COPAS INTERNACIONALES ────────────────────
+            "UCL": ["Real Madrid CF", "FC Barcelona", "Manchester City FC", "Arsenal FC", "Liverpool FC", "Inter Milan", "AC Milan", "Juventus FC", "FC Bayern München", "Bayer 04 Leverkusen", "Borussia Dortmund", "Paris Saint-Germain FC", "Atlético de Madrid", "Sporting CP", "SL Benfica", "Feyenoord", "PSV Eindhoven", "Celtic FC", "Aston Villa FC", "Bologna", "Atalanta", "AS Monaco FC", "Lille OSC", "Stade Brestois 29"],
+            "LIB": ["River Plate", "Boca Juniors", "Flamengo", "Palmeiras", "Fluminense", "Botafogo", "Atlético Mineiro", "São Paulo FC", "Peñarol", "Club Nacional de Football", "Club Olimpia", "Cerro Porteño", "Colo-Colo", "Barcelona SC", "LDU Quito", "Junior", "Millonarios", "Estudiantes L.P.", "Libertad", "Bolívar", "The Strongest", "Talleres", "San Lorenzo", "Independiente del Valle"],
+            
             # ── EUROPA ──────────────────────────────────
             "PD": ["Real Madrid CF", "FC Barcelona", "Atlético de Madrid", "Villarreal CF", "Real Betis",
                    "Real Sociedad", "Athletic Club", "Girona FC", "CA Osasuna", "Sevilla FC",
                    "RCD Espanyol", "RC Celta", "Valencia CF", "Getafe CF", "Deportivo Alavés",
                    "Rayo Vallecano", "RCD Mallorca", "Levante UD", "Real Valladolid", "UD Las Palmas"],
+            "ELC": ["Leeds United", "Burnley FC", "Sheffield United", "Sunderland AFC", "West Bromwich Albion", "Middlesbrough FC", "Coventry City", "Norwich City", "Luton Town", "Watford FC", "Blackburn Rovers", "Derby County", "Stoke City", "Hull City", "Swansea City", "Preston North End"],
             "PL": ["Manchester City FC", "Arsenal FC", "Liverpool FC", "Aston Villa FC", "Chelsea FC",
                    "Tottenham Hotspur FC", "Manchester United FC", "Newcastle United FC",
                    "West Ham United FC", "Brighton & Hove Albion FC", "Everton FC", "Fulham FC",
@@ -190,9 +195,12 @@ class FootballDataFetcher:
             "CHI": ["Club Universidad de Chile", "Colo-Colo", "Universidad Católica",
                     "Deportes Antofagasta", "Huachipato", "Audax Italiano"],
             "URU": ["Peñarol", "Club Nacional de Football", "Defensor Sporting",
-                    "CA Rentistas", "Danubio", "River Plate Montevideo"],
+                    "Danubio", "River Plate Montevideo"],
             "PAR": ["Club Olimpia", "Cerro Porteño", "Libertad", "Guaraní",
                     "Sol de América", "Deportivo Luqueño"],
+            "PER": ["Universitario", "Alianza Lima", "Sporting Cristal", "Melgar", "Cienciano", "Cusco FC", "ADT Tarma", "Sport Boys", "César Vallejo", "Carlos A. Mannucci", "UTC de Cajamarca", "Los Chankas", "Atlético Grau", "Comerciantes Unidos"],
+            "VEN": ["Deportivo Táchira", "Caracas FC", "Academia Puerto Cabello", "Monagas SC", "Metropolitanos FC", "Estudiantes de Mérida", "Deportivo La Guaira", "Portuguesa FC", "Angostura FC", "Carabobo FC", "Zamora FC", "Universidad Central"],
+            "BOL": ["Bolívar", "The Strongest", "Always Ready", "Blooming", "Oriente Petrolero", "Jorge Wilstermann", "Nacional Potosí", "Real Tomayapo", "San José", "Aurora", "Universitario de Vinto", "Guabirá"],
             # ── ASIA Y OTROS ────────────────────────────
             "SPL": ["Al Hilal", "Al Ittihad", "Al Nassr", "Al Ahli", "Al Shabab",
                     "Al Ettifaq", "Al Taawoun", "Al Qadsiah", "Al Fayha", "Damac FC"],
@@ -209,11 +217,13 @@ class FootballDataFetcher:
                     "Mamelodi Sundowns", "Kaizer Chiefs", "Al-Merrikh", "Wydad Athletic"],
             "NIG": ["Enyimba FC", "Shooting Stars SC", "Rivers United", "Kano Pillars",
                     "Heartland FC", "Lobi Stars", "Plateau United"],
+            "GRE": ["AEK Athens", "Olympiacos", "PAOK Salonika", "Panathinaikos", "Aris", "Asteras Tripolis", "Atromitos", "OFI Crete", "Lamia", "Panetolikos", "Volos", "Panserraikos"],
         }
 
     # ── WORLD CUP 2026 DATA ──────────────────────────────────────
     def get_worldcup_data(self):
         """Returns FIFA World Cup 2026 group data with standings and matches."""
+        # Grupos OFICIALES FIFA World Cup 2026 – 48 equipos confirmados
         draw = {
             "A": ["México", "Sudáfrica", "Corea del Sur", "Chequia"],
             "B": ["Canadá", "Bosnia", "Qatar", "Suiza"],
@@ -223,24 +233,36 @@ class FootballDataFetcher:
             "F": ["Países Bajos", "Japón", "Ucrania", "Túnez"],
             "G": ["Bélgica", "Egipto", "Irán", "Nueva Zelanda"],
             "H": ["España", "Cabo Verde", "Arabia Saudí", "Uruguay"],
-            "I": ["Francia", "Senegal", "Bolivia", "Noruega"],
+            "I": ["Francia", "Senegal", "Bolivia", "Suecia"],
             "J": ["Argentina", "Argelia", "Austria", "Jordania"],
-            "K": ["Portugal", "Jamaica", "Uzbekistán", "Colombia"],
+            "K": ["Portugal", "Rep. D. Congo", "Uzbekistán", "Colombia"],
             "L": ["Inglaterra", "Croacia", "Ghana", "Panamá"]
         }
         
         flags = {
+            # Grupo A
             "México": "🇲🇽", "Sudáfrica": "🇿🇦", "Corea del Sur": "🇰🇷", "Chequia": "🇨🇿",
+            # Grupo B
             "Canadá": "🇨🇦", "Bosnia": "🇧🇦", "Qatar": "🇶🇦", "Suiza": "🇨🇭",
+            # Grupo C
             "Brasil": "🇧🇷", "Marruecos": "🇲🇦", "Haití": "🇭🇹", "Escocia": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+            # Grupo D
             "Estados Unidos": "🇺🇸", "Paraguay": "🇵🇾", "Australia": "🇦🇺", "Turquía": "🇹🇷",
+            # Grupo E
             "Alemania": "🇩🇪", "Curazao": "🇨🇼", "Costa de Marfil": "🇨🇮", "Ecuador": "🇪🇨",
+            # Grupo F
             "Países Bajos": "🇳🇱", "Japón": "🇯🇵", "Ucrania": "🇺🇦", "Túnez": "🇹🇳",
+            # Grupo G
             "Bélgica": "🇧🇪", "Egipto": "🇪🇬", "Irán": "🇮🇷", "Nueva Zelanda": "🇳🇿",
+            # Grupo H
             "España": "🇪🇸", "Cabo Verde": "🇨🇻", "Arabia Saudí": "🇸🇦", "Uruguay": "🇺🇾",
-            "Francia": "🇫🇷", "Senegal": "🇸🇳", "Bolivia": "🇧🇴", "Noruega": "🇳🇴",
+            # Grupo I
+            "Francia": "🇫🇷", "Senegal": "🇸🇳", "Bolivia": "🇧🇴", "Suecia": "🇸🇪",
+            # Grupo J
             "Argentina": "🇦🇷", "Argelia": "🇩🇿", "Austria": "🇦🇹", "Jordania": "🇯🇴",
-            "Portugal": "🇵🇹", "Jamaica": "🇯🇲", "Uzbekistán": "🇺🇿", "Colombia": "🇨🇴",
+            # Grupo K – Congo DR confirmado
+            "Portugal": "🇵🇹", "Rep. D. Congo": "🇨🇩", "Uzbekistán": "🇺🇿", "Colombia": "🇨🇴",
+            # Grupo L
             "Inglaterra": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Croacia": "🇭🇷", "Ghana": "🇬🇭", "Panamá": "🇵🇦"
         }
 
@@ -265,18 +287,19 @@ class FootballDataFetcher:
         # Precooked realistic results for (M1, M2, M3, M4) per group
         # Each group gets slightly different but realistic results to make the standings interesting
         precooked_scores = {
-            "A": ("2-1", "1-1", "2-0", "1-1"), # Mex-RSA: 2-1, Kor-Cze: 1-1, Mex-Kor: 2-0, RSA-Cze: 1-1
-            "B": ("1-1", "1-2", "6-0", "0-2"), # Can-Bos: 1-1, Qat-Sui: 1-2, Can-Qat: 6-0, Bos-Sui: 0-2
-            "C": ("3-1", "1-2", "2-0", "1-1"), # Bra-Mar: 3-1, Hai-Sco: 1-2, Bra-Hai: 2-0, Mar-Sco: 1-1
-            "D": ("2-1", "1-2", "3-1", "0-2"), # USA-Par: 2-1, Aus-Tur: 1-2, USA-Aus: 3-1, Par-Tur: 0-2
-            "E": ("2-0", "1-2", "1-1", "1-3"), # Ger-Cur: 2-0, Civ-Ecu: 1-2, Ger-Civ: 1-1, Cur-Ecu: 1-3
-            "F": ("2-1", "2-0", "3-1", "1-1"), # Ned-Jap: 2-1, Ukr-Tun: 2-0, Ned-Ukr: 3-1, Jap-Tun: 1-1
-            "G": ("1-0", "0-0", "2-1", "1-1"), # Bel-Egy: 1-0, Ira-NZL: 0-0, Bel-Ira: 2-1, Egy-NZL: 1-1
-            "H": ("2-0", "1-3", "2-1", "0-2"), # Esp-CPV: 2-0, Sau-Uru: 1-3, Esp-Sau: 2-1, CPV-Uru: 0-2
-            "I": ("3-0", "1-2", "2-1", "1-1"), # Fra-Sen: 3-0, Bol-Nor: 1-2, Fra-Bol: 2-1, Sen-Nor: 1-1
-            "J": ("2-0", "1-1", "3-1", "1-2"), # Arg-Alg: 2-0, Aut-Jor: 1-1, Arg-Aut: 3-1, Alg-Jor: 1-2
-            "K": ("1-0", "1-2", "2-0", "1-1"), # Por-Jam: 1-0, Uzb-Col: 1-2, Por-Uzb: 2-0, Jam-Col: 1-1
-            "L": ("2-1", "1-1", "2-0", "1-2"), # Eng-Cro: 2-1, Gha-Pan: 1-1, Eng-Gha: 2-0, Cro-Pan: 1-2
+            # (J1-M1, J1-M2, J2-M1, J2-M2)
+            "A": ("2-1", "1-1", "2-0", "1-1"), # Mex-RSA 2-1, Kor-Cze 1-1, Mex-Kor 2-0, RSA-Cze 1-1
+            "B": ("1-1", "1-2", "6-0", "0-2"), # Can-Bos 1-1, Qat-Sui 1-2, Can-Qat 6-0, Bos-Sui 0-2
+            "C": ("3-1", "1-2", "2-0", "1-1"), # Bra-Mar 3-1, Hai-Sco 1-2, Bra-Hai 2-0, Mar-Sco 1-1
+            "D": ("2-1", "1-2", "3-1", "0-2"), # USA-Par 2-1, Aus-Tur 1-2, USA-Aus 3-1, Par-Tur 0-2
+            "E": ("2-0", "1-2", "1-1", "1-3"), # Ger-Cur 2-0, CIV-Ecu 1-2, Ger-CIV 1-1, Cur-Ecu 1-3
+            "F": ("2-1", "2-0", "3-1", "1-1"), # Ned-Jap 2-1, Ukr-Tun 2-0, Ned-Ukr 3-1, Jap-Tun 1-1
+            "G": ("1-0", "0-0", "2-1", "1-1"), # Bel-Egy 1-0, Ira-NZL 0-0, Bel-Ira 2-1, Egy-NZL 1-1
+            "H": ("2-0", "1-3", "2-1", "0-2"), # Esp-CPV 2-0, Sau-Uru 1-3, Esp-Sau 2-1, CPV-Uru 0-2
+            "I": ("3-0", "1-2", "2-1", "1-1"), # Fra-Sen 3-0, Bol-Nor 1-2, Fra-Bol 2-1, Sen-Nor 1-1
+            "J": ("2-0", "1-1", "3-1", "1-2"), # Arg-Alg 2-0, Aut-Jor 1-1, Arg-Aut 3-1, Alg-Jor 1-2
+            "K": ("1-1", "1-2", "2-0", "1-0"), # Por-Congo 1-1, Uzb-Col 1-2, Por-Uzb 2-0, Congo-Col 1-0
+            "L": ("2-1", "1-1", "2-0", "1-2"), # Eng-Cro 2-1, Gha-Pan 1-1, Eng-Gha 2-0, Cro-Pan 1-2
         }
 
         for letter, teams_list in draw.items():
@@ -350,6 +373,96 @@ class FootballDataFetcher:
         return groups
 
     def get_standings(self, league="PD"):
+        # Mapeo de códigos de liga a hojas del Excel
+        sheet_mapping = {
+            "PL": "Inglaterra",
+            "SA": "Italia",
+            "PD": "Espa\u00f1a", # España
+            "COL": "Colombia",
+            "BL1": "Alemania",
+            "FL1": "Francia",
+            "PPL": "Portugal",
+            "TSL": "Turquia",
+            "DED": "Paises Bajos",
+            "SPL": "Arabia Saudit",
+            "J1": "Japon",
+            "BEL": "Belgica",
+            "CSL": "China",
+            "MX": "Mexico ",
+            "ELC": "Champio chip",
+            "ECU": "Ecuador",
+            "GRE": "Grecia"
+        }
+        
+        excel_path = r"c:\Users\JEFE ENFERMERIA\Downloads\TABLAS DE POSICIONES.xlsx"
+        import os
+        import openpyxl
+        
+        if os.path.exists(excel_path) and league in sheet_mapping:
+            sheet_name = sheet_mapping[league]
+            try:
+                wb = openpyxl.load_workbook(excel_path, data_only=True)
+                if sheet_name in wb.sheetnames:
+                    sheet = wb[sheet_name]
+                    result = []
+                    for r_idx, row in enumerate(sheet.iter_rows(values_only=False)):
+                        # Comprobar si el primer elemento de la fila es una posición numérica
+                        col0 = row[0].value
+                        if col0 is not None:
+                            try:
+                                # Limpiar y parsear posición
+                                pos_str = str(col0).strip().split('.')[0]
+                                pos = int(pos_str)
+                            except ValueError:
+                                continue # No es una fila de equipo
+                            
+                            # Es una fila de equipo
+                            team_cell = row[1]
+                            team_name = str(team_cell.value).strip() if team_cell.value is not None else ""
+                            if not team_name:
+                                continue
+                                
+                            # Extraer URL de ESPN si existe
+                            espn_url = team_cell.hyperlink.target if team_cell.hyperlink else ""
+                            
+                            # Parsear métricas numéricas con fallbacks seguros
+                            def parse_int(cell_val, default=0):
+                                if cell_val is None:
+                                    return default
+                                try:
+                                    return int(float(str(cell_val).strip()))
+                                except Exception:
+                                    return default
+                            
+                            played = parse_int(row[2].value, 24)
+                            won = parse_int(row[3].value, 0)
+                            draw = parse_int(row[4].value, 0)
+                            lost = parse_int(row[5].value, 0)
+                            gd = parse_int(row[6].value, 0)
+                            pts = parse_int(row[7].value, 0)
+                            
+                            result.append({
+                                "position": pos,
+                                "team": {
+                                    "name": team_name,
+                                    "crest": self.get_crest(team_name),
+                                    "espn_url": espn_url
+                                },
+                                "playedGames": played,
+                                "won": won,
+                                "draw": draw,
+                                "lost": lost,
+                                "goalsFor": 0, # Opcionales
+                                "goalsAgainst": 0,
+                                "goalDifference": gd,
+                                "points": pts
+                            })
+                    if result:
+                        return sorted(result, key=lambda x: x["position"])
+            except Exception as e:
+                print(f"Error parsing Excel for standings: {e}")
+                
+        # FALLBACK: Simulación original si no existe el Excel o falla
         data = self._get_complete_table_data()
         teams = data.get(league, data["PD"])
         base_pts = 60
@@ -360,7 +473,7 @@ class FootballDataFetcher:
             lost = max(0, 24 - won - draw)
             result.append({
                 "position": i+1,
-                "team": {"name": t, "crest": self.get_crest(t)},
+                "team": {"name": t, "crest": self.get_crest(t), "espn_url": ""},
                 "playedGames": 24,
                 "won": won, "draw": draw, "lost": lost,
                 "points": max(5, base_pts - i*2),
@@ -398,12 +511,21 @@ class FootballDataFetcher:
             rivals = ["Rival Zona", "Rival Zona", "Selección Top", "Rival Zona", "Sel. Amistoso"]
             score_map = {"W": "2-1", "D": "1-1", "L": "0-1"}
             for m_idx, result in enumerate(form_str):
+                score_str = score_map[result]
+                h_g, a_g = map(int, score_str.split("-"))
+                g_scored = h_g
+                g_conceded = a_g
+                match_stat = self.generate_match_stats(g_scored, g_conceded, p["sofa_rating"])
                 recent_results.append({
                     "competition": comps[m_idx],
                     "date": "Mar 2026", "time": "20:00",
                     "home": team_name, "away": rivals[m_idx],
-                    "score": score_map[result], "result": result
+                    "score": score_str, "result": result,
+                    "stats": match_stat
                 })
+            
+            hist_avg = self.calculate_averages_from_history(recent_results, team_name)
+            
             return {
                 "name": team_name,
                 "crest": self.get_crest(team_name),
@@ -417,26 +539,29 @@ class FootballDataFetcher:
                 "wc_history": p["wc_history"],
                 "style": p["style"],
                 "summary": {
-                    "goals_scored": round(p["goals_per_game"] * 10),
-                    "clean_sheets": max(1, round((1.5 - p["goals_conceded"]) * 5)),
+                    "goals_scored": round(hist_avg["avg_goals"] * 10),
+                    "clean_sheets": max(1, round((1.5 - hist_avg["avg_goals_conceded"]) * 5)),
                     "avg_possession": p["possession"],
                     "avg_sofacore_rating": p["sofa_rating"],
-                    "yellow_cards": round(p["yellow_cards"] * 10),
-                    "yellow_cards_per_game": p["yellow_cards"],
+                    "yellow_cards": round(hist_avg["avg_yellow_cards"] * 10),
+                    "yellow_cards_per_game": hist_avg["avg_yellow_cards"],
+                    "avg_goal_kicks": hist_avg["avg_goal_kicks"],
+                    "avg_throw_ins": hist_avg["avg_throw_ins"],
+                    "avg_saves": hist_avg["avg_saves"],
                 },
                 "attack": {
-                    "goals_per_game": round(p["goals_per_game"] * rank_factor * (0.9 + 0.2 * form_score), 2),
-                    "total_shots": round(p["shots_on_target"] * 2.2),
-                    "shots_on_target": p["shots_on_target"],
-                    "big_chances_created": round(p["shots_on_target"] * 0.4),
-                    "key_passes": round(p["shots_on_target"] * 2.0),
-                    "corners": p["corners"],
+                    "goals_per_game": hist_avg["avg_goals"],
+                    "total_shots": hist_avg["avg_total_shots"],
+                    "shots_on_target": hist_avg["avg_shots_on_target"],
+                    "big_chances_created": round(hist_avg["avg_shots_on_target"] * 0.4),
+                    "key_passes": round(hist_avg["avg_shots_on_target"] * 2.0),
+                    "corners": hist_avg["avg_corners"],
                 },
                 "defense": {
-                    "goals_conceded": round(p["goals_conceded"] * (1.0 / rank_factor), 2),
+                    "goals_conceded": hist_avg["avg_goals_conceded"],
                     "tackles": round(14 + (1 - form_score) * 4),
                     "interceptions": round(9 + form_score * 3),
-                    "clearances": round(14 + p["goals_conceded"] * 4),
+                    "clearances": round(14 + hist_avg["avg_goals_conceded"] * 4),
                     "duels_won": f"{round(48 + (p['sofa_rating'] - 6.5) * 3)}%",
                 },
                 "matches": {
@@ -477,12 +602,33 @@ class FootballDataFetcher:
             info["capacity"] = f"{random.randint(20, 80)},000"
         rating = round(random.uniform(6.5, 7.8), 2)
         form = [random.choice(["W","D","L"]) for _ in range(5)]
+        
+        recent_results = [
+            {"competition": "Champions League", "date": "18/02/26", "time": "21:00", "home": "Bayern Munich", "away": team_name, "score": "1-1", "result": "D"},
+            {"competition": "Liga", "date": "14/02/26", "time": "21:00", "home": team_name, "away": "Athletic Club", "score": "2-1", "result": "W"},
+            {"competition": "Copa", "date": "11/02/26", "time": "19:00", "home": "Atlético de Madrid", "away": team_name, "score": "0-1", "result": "W"},
+            {"competition": "Champions League", "date": "04/02/26", "time": "21:00", "home": team_name, "away": "AC Milan", "score": "3-1", "result": "W"},
+            {"competition": "Liga", "date": "01/02/26", "time": "21:00", "home": "FC Barcelona", "away": team_name, "score": "2-2", "result": "D"},
+        ]
+        
+        for m in recent_results:
+            try:
+                h_g, a_g = map(int, m["score"].split("-"))
+                g_scored = h_g if m["home"] == team_name else a_g
+                g_conceded = a_g if m["home"] == team_name else h_g
+            except:
+                g_scored = random.randint(1, 2)
+                g_conceded = random.randint(1, 2)
+            m["stats"] = self.generate_match_stats(g_scored, g_conceded, rating)
+            
+        hist_avg = self.calculate_averages_from_history(recent_results, team_name)
+        
         return {
             "name": team_name,
             "crest": self.get_crest(team_name),
             "sofa_rating": rating,
             "form": form,
-            "form_score": 0.5,
+            "form_score": sum(1.0 if r=="W" else 0.5 if r=="D" else 0.0 for r in form) / len(form),
             "rank_factor": 1.0,
             "fifa_rank": 50,
             "confederation": "UEFA",
@@ -490,36 +636,33 @@ class FootballDataFetcher:
             "wc_history": "Datos no disponibles",
             "style": "Estilo de juego competitivo",
             "summary": {
-                "goals_scored": random.randint(30,60),
-                "clean_sheets": random.randint(5,15),
+                "goals_scored": round(hist_avg["avg_goals"] * 10),
+                "clean_sheets": max(1, round((1.5 - hist_avg["avg_goals_conceded"]) * 5)),
                 "avg_possession": f"{random.randint(45,62)}%",
                 "avg_sofacore_rating": rating,
-                "yellow_cards": random.randint(30,60),
-                "yellow_cards_per_game": round(random.uniform(1.2,3.2),1)
+                "yellow_cards": round(hist_avg["avg_yellow_cards"] * 10),
+                "yellow_cards_per_game": hist_avg["avg_yellow_cards"],
+                "avg_goal_kicks": hist_avg["avg_goal_kicks"],
+                "avg_throw_ins": hist_avg["avg_throw_ins"],
+                "avg_saves": hist_avg["avg_saves"],
             },
             "attack": {
-                "goals_per_game": round(random.uniform(1.0,2.5),1),
-                "total_shots": random.randint(10,16),
-                "shots_on_target": round(random.uniform(3.0,7.0),1),
-                "big_chances_created": random.randint(1,5),
-                "key_passes": random.randint(8,14),
-                "corners": round(random.uniform(4.0,8.0),1)
+                "goals_per_game": hist_avg["avg_goals"],
+                "total_shots": hist_avg["avg_total_shots"],
+                "shots_on_target": hist_avg["avg_shots_on_target"],
+                "big_chances_created": round(hist_avg["avg_shots_on_target"] * 0.4),
+                "key_passes": round(hist_avg["avg_shots_on_target"] * 2.0),
+                "corners": hist_avg["avg_corners"],
             },
             "defense": {
-                "goals_conceded": round(random.uniform(0.5,1.5),1),
+                "goals_conceded": hist_avg["avg_goals_conceded"],
                 "tackles": random.randint(12,18),
                 "interceptions": random.randint(7,12),
-                "clearances": random.randint(10,20),
+                "clearances": round(14 + hist_avg["avg_goals_conceded"] * 4),
                 "duels_won": f"{random.randint(48,58)}%"
             },
             "matches": {
-                "results": [
-                    {"competition": "Champions League", "date": "18/02/26", "time": "21:00", "home": "Bayern Munich", "away": team_name, "score": "1-1", "result": "D"},
-                    {"competition": "Liga", "date": "14/02/26", "time": "21:00", "home": team_name, "away": "Athletic Club", "score": "2-1", "result": "W"},
-                    {"competition": "Copa", "date": "11/02/26", "time": "19:00", "home": "Atlético de Madrid", "away": team_name, "score": "0-1", "result": "W"},
-                    {"competition": "Champions League", "date": "04/02/26", "time": "21:00", "home": team_name, "away": "AC Milan", "score": "3-1", "result": "W"},
-                    {"competition": "Liga", "date": "01/02/26", "time": "21:00", "home": "FC Barcelona", "away": team_name, "score": "2-2", "result": "D"},
-                ],
+                "results": recent_results,
                 "fixtures": [
                     {"competition": "Champions League", "date": "04/03/26", "time": "21:00", "home": team_name, "away": "Bayern Munich", "score": "-"},
                     {"competition": "Liga", "date": "22/02/26", "time": "21:00", "home": "Rival D", "away": team_name, "score": "-"}
@@ -540,6 +683,70 @@ class FootballDataFetcher:
                 {"player": "Fichaje Invierno", "from": "Club Origen", "type": "Comprado", "fee": "€20M", "date": "Ene 2026"},
                 {"player": "Venta Verano", "from": "Club Destino", "type": "Vendido", "fee": "€40M", "date": "Ago 2025"}
             ]
+        }
+
+    def generate_match_stats(self, goals_scored, goals_conceded, team_sofa_rating):
+        # Generar estadísticas realistas para un partido específico basándose en goles e indicadores
+        shots_on_target = max(1, goals_scored + random.randint(1, 4))
+        total_shots = shots_on_target + random.randint(3, 10)
+        
+        # Las paradas defensivas aumentan con goles concedidos y azar
+        saves = max(0, random.randint(1, 4) + (1 if goals_conceded == 0 else 0))
+        
+        corners = max(2, random.randint(2, 6) + int(team_sofa_rating - 6.0))
+        yellow_cards = random.randint(1, 4)
+        goal_kicks = max(3, random.randint(4, 10) + int(goals_conceded * 1.2))
+        throw_ins = max(12, random.randint(15, 28) - int(team_sofa_rating - 7.0))
+        
+        return {
+            "goals": goals_scored,
+            "goals_conceded": goals_conceded,
+            "throw_ins": throw_ins,
+            "goal_kicks": goal_kicks,
+            "yellow_cards": yellow_cards,
+            "corners": corners,
+            "shots_on_target": shots_on_target,
+            "total_shots": total_shots,
+            "saves": saves
+        }
+
+    def calculate_averages_from_history(self, results, team_name):
+        if not results:
+            return None
+            
+        sum_goals = 0
+        sum_conceded = 0
+        sum_throw_ins = 0
+        sum_goal_kicks = 0
+        sum_yellow_cards = 0
+        sum_corners = 0
+        sum_shots_on_target = 0
+        sum_total_shots = 0
+        sum_saves = 0
+        
+        count = len(results)
+        for r in results:
+            m_stats = r.get("stats", {})
+            sum_goals += m_stats.get("goals", 1.5)
+            sum_conceded += m_stats.get("goals_conceded", 1.0)
+            sum_throw_ins += m_stats.get("throw_ins", 21)
+            sum_goal_kicks += m_stats.get("goal_kicks", 7.5)
+            sum_yellow_cards += m_stats.get("yellow_cards", 2.0)
+            sum_corners += m_stats.get("corners", 5.0)
+            sum_shots_on_target += m_stats.get("shots_on_target", 4.5)
+            sum_total_shots += m_stats.get("total_shots", 10.0)
+            sum_saves += m_stats.get("saves", 3.0)
+            
+        return {
+            "avg_goals": round(sum_goals / count, 2),
+            "avg_goals_conceded": round(sum_conceded / count, 2),
+            "avg_throw_ins": round(sum_throw_ins / count, 1),
+            "avg_goal_kicks": round(sum_goal_kicks / count, 1),
+            "avg_yellow_cards": round(sum_yellow_cards / count, 1),
+            "avg_corners": round(sum_corners / count, 1),
+            "avg_shots_on_target": round(sum_shots_on_target / count, 1),
+            "avg_total_shots": round(sum_total_shots / count, 1),
+            "avg_saves": round(sum_saves / count, 1)
         }
 
     def get_teams_by_league(self, league):
@@ -927,6 +1134,16 @@ class FootballDataFetcher:
             "wc_history": "No clasificaba desde 1998; vuelve con Haaland",
             "sofa_rating": 7.6, "stadium": "Ullevaal Stadion", "coach": "Ståle Solbakken",
         },
+        "Suecia": {
+            "fifa_rank": 28, "confederation": "UEFA",
+            "goals_per_game": 1.9, "goals_conceded": 1.0, "corners": 5.4, "shots_on_target": 4.9,
+            "yellow_cards": 1.8, "possession": "54%",
+            "form": ["W","W","L","W","D"],
+            "style": "Ataque fluido y físico con transiciones dinámicas",
+            "key_player": "Viktor Gyökeres (Sporting CP) – delantero estrella en racha goleadora",
+            "wc_history": "Subcampeón 1958; tercer lugar 1950 y 1994",
+            "sofa_rating": 7.5, "stadium": "Friends Arena", "coach": "Jon Dahl Tomasson",
+        },
         # ─── GROUP J ───
         "Argentina": {
             "fifa_rank": 1, "confederation": "CONMEBOL",
@@ -979,15 +1196,15 @@ class FootballDataFetcher:
             "wc_history": "Tercer lugar 1966; semifinal 2006; busca su primer título",
             "sofa_rating": 7.9, "stadium": "Estádio da Luz", "coach": "Roberto Martínez",
         },
-        "Jamaica": {
-            "fifa_rank": 51, "confederation": "CONCACAF",
-            "goals_per_game": 1.2, "goals_conceded": 1.4, "corners": 4.1, "shots_on_target": 3.5,
-            "yellow_cards": 2.3, "possession": "44%",
-            "form": ["W","D","D","W","L"],
-            "style": "Veloz y físico, con mucha energía por bandas",
-            "key_player": "Leon Bailey (Aston Villa) – extremo explosivo",
-            "wc_history": "Última aparición en 1998 – primera victoria histórica",
-            "sofa_rating": 6.6, "stadium": "Independence Park", "coach": "Theodore Whitmore",
+        "Rep. D. Congo": {
+            "fifa_rank": 56, "confederation": "CAF",
+            "goals_per_game": 1.3, "goals_conceded": 1.2, "corners": 4.3, "shots_on_target": 3.7,
+            "yellow_cards": 2.2, "possession": "46%",
+            "form": ["W","D","W","D","L"],
+            "style": "Físico, veloz por bandas, con buen pressing colectivo",
+            "key_player": "Chancel Mbemba (Marsella) – defensa líder y capitán",
+            "wc_history": "Participó en 1974 como Zaire; regresa históricamente al Mundial en 2026 tras pasar el repechaje intercontinental",
+            "sofa_rating": 6.8, "stadium": "Stade des Martyrs", "coach": "Sébastien Desabre",
         },
         "Uzbekistán": {
             "fifa_rank": 62, "confederation": "AFC",

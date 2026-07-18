@@ -1,0 +1,61 @@
+{# Sprite de iconos SVG. Sustituye a los emojis usados como iconos de interfaz:
+   los emojis dependen de la fuente del sistema, cambian de forma entre
+   plataformas y no se pueden teñir con los tokens de color.
+   Estos heredan color con `currentColor` y tamaño con la clase .ico.
+   Trazo uniforme de 2px (familia Lucide). #}
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="ico-balon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="m12 6.6 4 2.9-1.5 4.7h-5L8 9.5z" fill="currentColor" stroke="none"/>
+    <path d="M12 3v3.6M4.2 9.9 8 9.5M19.8 9.9 16 9.5M9.5 14.2 7.4 17.9M14.5 14.2l2.1 3.7"/>
+  </symbol>
+
+  <symbol id="ico-calendario" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2"/>
+    <path d="M16 2v4M8 2v4M3 10h18"/>
+  </symbol>
+
+  <symbol id="ico-trofeo" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+    <path d="M4 22h16"/>
+    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+  </symbol>
+
+  <symbol id="ico-prediccion" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3v2M12 19v2M5 12H3M21 12h-2M7.05 7.05 5.64 5.64M18.36 18.36l-1.41-1.41M7.05 16.95l-1.41 1.41M18.36 5.64l-1.41 1.41"/>
+    <circle cx="12" cy="12" r="4"/>
+  </symbol>
+
+  <symbol id="ico-tendencia" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 7h6v6"/>
+    <path d="m22 7-8.5 8.5-5-5L2 17"/>
+  </symbol>
+
+  <symbol id="ico-motor" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="4" width="16" height="16" rx="2"/>
+    <rect x="9" y="9" width="6" height="6"/>
+    <path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/>
+  </symbol>
+
+  <symbol id="ico-boleto" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/>
+    <path d="M13 5v2M13 11v2M13 17v2"/>
+  </symbol>
+
+  <symbol id="ico-noticia" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 4h13a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2z"/>
+    <path d="M19 19a2 2 0 0 1-2-2V4"/>
+    <path d="M8 8h6M8 12h6M8 16h4"/>
+  </symbol>
+</svg>

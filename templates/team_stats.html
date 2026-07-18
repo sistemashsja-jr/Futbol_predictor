@@ -5,34 +5,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ stats.name }} - Detalles del Equipo - FutboltAI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/futbolt.css') }}">
     <style>
         :root {
-            --bg-dark: #08070b;
-            --card-bg: #110f18;
-            --primary: #6d28d9;
-            --secondary: #1e1b2e;
-            --text-main: #f1f5f9;
-            --text-dim: #94a3b8;
+            /* Alineado con el sistema compartido de FutboltAI */
+            --bg-dark: #060711;
+            --card-bg: #0e1120;
+            --card: rgba(255, 255, 255, 0.035);
+            --card-b: rgba(255, 255, 255, 0.09);
+            --primary: #7c3aed;          /* superficies y rellenos */
+            --primary-ink: #a78bfa;      /* acento legible sobre fondo oscuro */
+            --secondary: #1e1b2e;        /* superficie, NO usar como texto */
+            --text-main: #f0f4ff;
+            --text-dim: #8892a4;
             --win: #22c55e;
             --loss: #ef4444;
-            --draw: #94a3b8;
-            --blue-sofa: #6d28d9;
+            --draw: #8892a4;
+            --blue-sofa: #7c3aed;
             --rating-high: #22c55e;
             --rating-med: #eab308;
             --rating-low: #ef4444;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'IBM Plex Sans', sans-serif;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
 
+        /* Sans de cuerpo para datos y etiquetas; Outfit reservado a titulares. */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+        }
+
         body {
+            font-family: var(--font-body);
             background-color: var(--bg-dark);
             background-image:
                 radial-gradient(circle at 10% 10%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
@@ -50,7 +62,7 @@
 
         /* Header Layout */
         header {
-            background: linear-gradient(135deg, #110f18, #1e1b2e, #08070b);
+            background: linear-gradient(135deg, var(--card-bg), var(--secondary), var(--bg-dark));
             padding: 40px 0;
             margin-bottom: 20px;
             border-bottom: 1px solid var(--secondary);
@@ -93,7 +105,7 @@
 
         /* Profile Header */
         .profile-header {
-            background: linear-gradient(180deg, #292524 0%, var(--card) 100%);
+            background: linear-gradient(180deg, var(--card-bg) 0%, var(--card) 100%);
             border-radius: 24px;
             padding: 30px;
             margin-bottom: 25px;
@@ -159,8 +171,11 @@
             position: relative;
         }
 
+        /* --secondary es una superficie casi negra: como texto sobre fondo
+           oscuro daba 1.2:1 (invisible). La pestaña activa usa tinta legible
+           y el indicador, el acento de marca. */
         .tab.active {
-            color: var(--secondary);
+            color: var(--text-main);
         }
 
         .tab.active::after {
@@ -170,7 +185,7 @@
             left: 0;
             width: 100%;
             height: 3px;
-            background: var(--secondary);
+            background: var(--primary-ink);
             border-radius: 3px 3px 0 0;
         }
 
@@ -192,7 +207,7 @@
             border-radius: 20px;
             padding: 25px;
             margin-bottom: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-b);
         }
 
         .card-header {
@@ -211,7 +226,7 @@
         }
 
         .card-title span {
-            color: var(--secondary);
+            color: var(--primary-ink);
         }
 
         /* Matches List */
@@ -219,7 +234,7 @@
             display: flex;
             align-items: center;
             padding: 12px 15px;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--card);
             border-radius: 12px;
             margin-bottom: 10px;
             font-size: 14px;
@@ -277,7 +292,7 @@
             font-weight: 600;
             cursor: pointer;
             color: var(--text-dim);
-            transition: all 0.2s;
+            transition: var(--tr-ui);
         }
 
         .sub-tab.active {
@@ -299,16 +314,46 @@
         }
 
         .sofa-match-row {
-            display: grid;
-            grid-template-columns: 80px 1fr 60px;
-            align-items: center;
+            display: flex;
+            flex-direction: column;
             padding: 12px 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.03);
             transition: background 0.2s;
         }
 
         .sofa-match-row:hover {
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--card);
+        }
+
+        .sofa-match-main {
+            display: grid;
+            grid-template-columns: 80px 1fr 60px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .sofa-match-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            font-size: 10px;
+            color: var(--text-dim);
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .sofa-match-stats span {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
         }
 
         .m-time-box {
@@ -449,7 +494,7 @@
             gap: 12px;
             padding: 8px;
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.02);
+            background: var(--card);
         }
 
         .player-img {
@@ -504,6 +549,7 @@
         .info-value {
             font-weight: 600;
             text-align: right;
+        }
 
             /* Form Circles */
             .form-row {
@@ -568,7 +614,7 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                transition: all 0.2s;
+                transition: var(--tr-ui);
             }
 
             .btn-action:hover {
@@ -664,34 +710,48 @@
                             {% set current_league = m.competition %}
                             {% endif %}
                             <div class="sofa-match-row">
-                                <div class="m-time-box">
-                                    <div>{{ m.date }}</div>
-                                    <div style="opacity: 0.6;">{{ m.time }}</div>
-                                </div>
-                                <div class="m-teams-box">
-                                    <div class="m-team-item">
-                                        <img src="{{ stats.crest if m.home == stats.name else 'https://ui-avatars.com/api/?name=' + m.home[0] + '&background=1c1917&color=f59e0b' }}"
-                                            class="m-crest">
-                                        <span
-                                            style="{% if m.home == stats.name %}color:var(--text-main);{% else %}opacity:0.7;{% endif %}">{{
-                                            m.home }}</span>
+                                <div class="sofa-match-main">
+                                    <div class="m-time-box">
+                                        <div>{{ m.date }}</div>
+                                        <div style="opacity: 0.6;">{{ m.time }}</div>
                                     </div>
-                                    <div class="m-team-item">
-                                        <img src="{{ stats.crest if m.away == stats.name else 'https://ui-avatars.com/api/?name=' + m.away[0] + '&background=1c1917&color=f59e0b' }}"
-                                            class="m-crest">
-                                        <span
-                                            style="{% if m.away == stats.name %}color:var(--text-main);{% else %}opacity:0.7;{% endif %}">{{
-                                            m.away }}</span>
+                                    <div class="m-teams-box">
+                                        <div class="m-team-item">
+                                            <img src="{{ stats.crest if m.home == stats.name else 'https://ui-avatars.com/api/?name=' + m.home[0] + '&background=1c1917&color=f59e0b' }}"
+                                                class="m-crest">
+                                            <span
+                                                style="{% if m.home == stats.name %}color:var(--text-main);{% else %}opacity:0.7;{% endif %}">{{
+                                                m.home }}</span>
+                                        </div>
+                                        <div class="m-team-item">
+                                            <img src="{{ stats.crest if m.away == stats.name else 'https://ui-avatars.com/api/?name=' + m.away[0] + '&background=1c1917&color=f59e0b' }}"
+                                                class="m-crest">
+                                            <span
+                                                style="{% if m.away == stats.name %}color:var(--text-main);{% else %}opacity:0.7;{% endif %}">{{
+                                                m.away }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="m-score-box">
+                                        <div
+                                            style="color: {% if m.result == 'W' %}var(--win){% elif m.result == 'L' %}var(--loss){% else %}var(--text-main){% endif %}; font-weight: 800;">
+                                            {{ m.score.split('-')[0].strip() }}</div>
+                                        <div
+                                            style="color: {% if m.result == 'W' %}var(--win){% elif m.result == 'L' %}var(--loss){% else %}var(--text-main){% endif %}; font-weight: 800;">
+                                            {{ m.score.split('-')[1].strip() if '-' in m.score else '' }}</div>
                                     </div>
                                 </div>
-                                <div class="m-score-box">
-                                    <div
-                                        style="color: {% if m.result == 'W' %}var(--win){% elif m.result == 'L' %}var(--loss){% else %}var(--text-main){% endif %}; font-weight: 800;">
-                                        {{ m.score.split(' - ')[0] }}</div>
-                                    <div
-                                        style="color: {% if m.result == 'W' %}var(--win){% elif m.result == 'L' %}var(--loss){% else %}var(--text-main){% endif %}; font-weight: 800;">
-                                        {{ m.score.split(' - ')[1] }}</div>
+                                
+                                {% if m.stats %}
+                                <div class="sofa-match-stats">
+                                    <span>📐 Córners: {{ m.stats.corners }}</span>
+                                    <span>🎯 Remates: {{ m.stats.total_shots }}</span>
+                                    <span>🥅 Al Arco: {{ m.stats.shots_on_target }}</span>
+                                    <span>🧤 Paradas: {{ m.stats.saves }}</span>
+                                    <span>🎽 Bandas: {{ m.stats.throw_ins }}</span>
+                                    <span>⚽ Metas: {{ m.stats.goal_kicks }}</span>
+                                    <span>🟨 Tarjetas: {{ m.stats.yellow_cards }}</span>
                                 </div>
+                                {% endif %}
                             </div>
                             {% endfor %}
                         </div>
@@ -757,6 +817,10 @@
                                 <div class="stat-item">
                                     <span class="stat-label">Tarjetas amarillas p/p</span>
                                     <span class="stat-value">{{ stats.summary.yellow_cards_per_game }}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Paradas del portero p/p</span>
+                                    <span class="stat-value">{{ stats.summary.avg_saves }}</span>
                                 </div>
                             </div>
                         </div>
@@ -925,7 +989,7 @@
                             <tbody>
                                 {% for p in stats.squad %}
                                 <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                    <td style="padding: 12px; font-weight: 800; color: var(--secondary);">{{ p.no }}
+                                    <td style="padding: 12px; font-weight: 800; color: var(--primary-ink);">{{ p.no }}
                                     </td>
                                     <td style="padding: 12px; font-weight: 600;">{{ p.name }}</td>
                                     <td style="padding: 12px;"><span

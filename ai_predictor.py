@@ -5,14 +5,8 @@ import openai
 import anthropic
 import requests
 from stats_engine import StatsEngine
-try:
-    from groq import Groq
-except ImportError:
-    Groq = None
-try:
-    from mistralai import Mistral
-except ImportError:
-    Mistral = None
+from groq import Groq
+from mistralai.client import Mistral
 
 load_dotenv()
 
@@ -20,19 +14,19 @@ class AIPredictor:
     def __init__(self):
         # Gemini
         self.gemini_key = os.getenv("GEMINI_API_KEY")
-        self.gemini_client = genai.Client(api_key=self.gemini_key) if self.gemini_key else None
+        self.gemini_client = genai.Client(api_key=self.gemini_key, http_options={'timeout': 10.0}) if self.gemini_key else None
         
         # Groq
         self.groq_key = os.getenv("GROQ_API_KEY")
         if self.groq_key and "your_groq" not in self.groq_key:
-            self.groq_client = Groq(api_key=self.groq_key) if Groq else None
+            self.groq_client = Groq(api_key=self.groq_key, timeout=10.0) if Groq else None
         else:
             self.groq_client = None
 
         # Mistral
         self.mistral_key = os.getenv("MISTRAL_API_KEY")
         if self.mistral_key and "your_mistral" not in self.mistral_key:
-            self.mistral_client = Mistral(api_key=self.mistral_key) if Mistral else None
+            self.mistral_client = Mistral(api_key=self.mistral_key, timeout_ms=10000) if Mistral else None
         else:
             self.mistral_client = None
 
@@ -41,7 +35,8 @@ class AIPredictor:
         if self.kimi_key and "sk-" in self.kimi_key and "9oXVX" not in self.kimi_key:
             self.kimi_client = openai.OpenAI(
                 api_key=self.kimi_key,
-                base_url="https://api.moonshot.cn/v1"
+                base_url="https://api.moonshot.cn/v1",
+                timeout=10.0
             )
         else:
             self.kimi_client = None
@@ -51,7 +46,8 @@ class AIPredictor:
         if self.openrouter_key and "your_openrouter" not in self.openrouter_key:
             self.openrouter_client = openai.OpenAI(
                 api_key=self.openrouter_key,
-                base_url="https://openrouter.ai/api/v1"
+                base_url="https://openrouter.ai/api/v1",
+                timeout=10.0
             )
         else:
             self.openrouter_client = None
@@ -61,10 +57,22 @@ class AIPredictor:
         if self.sambanova_key and "your_sambanova" not in self.sambanova_key:
             self.sambanova_client = openai.OpenAI(
                 api_key=self.sambanova_key,
-                base_url="https://api.sambanova.ai/v1"
+                base_url="https://api.sambanova.ai/v1",
+                timeout=10.0
             )
         else:
             self.sambanova_client = None
+
+        # NVIDIA NIM
+        self.nvidia_key = os.getenv("NVIDIA_API_KEY")
+        if self.nvidia_key and "your_nvidia" not in self.nvidia_key:
+            self.nvidia_client = openai.OpenAI(
+                api_key=self.nvidia_key,
+                base_url="https://integrate.api.nvidia.com/v1",
+                timeout=60.0
+            )
+        else:
+            self.nvidia_client = None
 
     def get_prediction(self, match_info):
         user_message = match_info.get('message', 'Dame un pronóstico de fútbol')
@@ -77,7 +85,7 @@ class AIPredictor:
         if "corner" in user_message.lower() or "esquina" in user_message.lower() or "pronóstico" in user_message.lower():
             # Realizamos predicción avanzada con ML (Random Forest)
             # Usando promedios de Bodø vs Inter como base
-            ml_pred = StatsEngine.predict_advanced(1.2, 1.8, 4.65, 5.30)
+            ml_pred = StatsEngine.predict_advanced(7.0, 7.0, 0.5, 0.5, 1.2, 1.8, 4.65, 5.30, 4.5, 4.0, 2.0, 2.2, 7.5, 7.5, 21.0, 21.0, 3.0, 3.0, 10.0, 10.0)
             
             # También mantenemos la simulación Monte Carlo para probabilidad de Over
             sim = StatsEngine.simulate_corners(4.65, 5.30)
@@ -86,6 +94,12 @@ class AIPredictor:
             --- PREDICCIÓN AVANZADA DE LIGA (RANDOM FOREST ML) ---
             Proyección Goles: {ml_pred['ml_goals']}
             Proyección Córners: {ml_pred['ml_corners']}
+            Proyección Tiros al Arco: {ml_pred['ml_shots']}
+            Proyección Remates Totales: {ml_pred['ml_total_shots']}
+            Proyección Tarjetas: {ml_pred['ml_cards']}
+            Proyección Saques Puerta: {ml_pred['ml_goalkicks']}
+            Proyección Saques Banda: {ml_pred['ml_throwins']}
+            Proyección Paradas Portero: {ml_pred['ml_saves']}
 
             --- SIMULACIÓN MONTE CARLO (PROBABILIDADES) ---
             Media Proyectada: {sim['media_simulada']}
@@ -121,16 +135,7 @@ class AIPredictor:
         3. Idioma: Español. Markdown activo.
         """
 
-        # 1. Gemini (IA Principal - gemini-2.0-flash)
-        if self.gemini_client:
-            for model in ["gemini-2.0-flash", "gemini-1.5-flash"]:
-                try:
-                    response = self.gemini_client.models.generate_content(model=model, contents=prompt)
-                    return response.text + "\n\n*(Análisis impulsado por Gemini 2.0)*"
-                except Exception:
-                    continue
-
-        # 2. Groq (Fallback 1 - Alta velocidad)
+        # 1. Groq (IA Principal - el proveedor más rápido, ~2s)
         if self.groq_client:
             try:
                 response = self.groq_client.chat.completions.create(
@@ -140,6 +145,28 @@ class AIPredictor:
                 return response.choices[0].message.content + "\n\n*(Análisis impulsado por Llama 3.3)*"
             except Exception as e:
                 print(f"Groq Error: {e}")
+
+        # 2. Gemini
+        if self.gemini_client:
+            for model in ["gemini-2.0-flash", "gemini-1.5-flash"]:
+                try:
+                    response = self.gemini_client.models.generate_content(model=model, contents=prompt)
+                    return response.text + "\n\n*(Análisis impulsado por Gemini 2.0)*"
+                except Exception:
+                    continue
+
+        # 3. NVIDIA NIM (Llama 3.3 70B) - potente pero lento
+        if self.nvidia_client:
+            try:
+                response = self.nvidia_client.chat.completions.create(
+                    model="meta/llama-3.3-70b-instruct",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2,
+                    max_tokens=1024
+                )
+                return response.choices[0].message.content + "\n\n*(Análisis premium impulsado por NVIDIA NIM Llama 3.3)*"
+            except Exception as e:
+                print(f"NVIDIA Error: {e}")
 
         # 3. Mistral (Fallback 2)
         if self.mistral_client:

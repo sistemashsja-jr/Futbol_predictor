@@ -1,0 +1,182 @@
+/* ============================================================
+   FutboltAI · Capa de sistema compartida
+   Mejoras transversales aditivas: accesibilidad, foco,
+   scrollbars, selección y motion. Es intencionalmente
+   aditiva: si este archivo no cargara, cada página sigue
+   funcionando con sus estilos propios.
+   ============================================================ */
+
+/* ── Tokens de motion ──
+   Una sola fuente para curvas y duraciones. Las curvas nativas de CSS son
+   demasiado flojas para motion deliberada; estas son las de referencia.
+   Techo de la UI: 300ms. Las entradas usan ease-out (arrancan rápidas). */
+:root {
+    --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+    --dur-press:  160ms;   /* feedback de pulsación */
+    --dur-hover:  200ms;   /* hover, color */
+    --dur-panel:  250ms;   /* desplegables, paneles */
+
+    /* Conjunto explícito: nunca `transition: all`, que arrastra propiedades
+       de layout fuera de la GPU. */
+    --tr-ui: color var(--dur-hover) var(--ease-out),
+             background-color var(--dur-hover) var(--ease-out),
+             border-color var(--dur-hover) var(--ease-out),
+             box-shadow var(--dur-hover) var(--ease-out),
+             opacity var(--dur-hover) var(--ease-out),
+             transform var(--dur-press) var(--ease-out);
+}
+
+/* ── Feedback de pulsación ──
+   El gesto más frecuente de la app no tenía respuesta ninguna. */
+button:active,
+a.btn:active,
+.btn:active,
+.btn-primary:active,
+.btn-secondary:active,
+.nav-cta:active,
+.tab:active,
+.league-btn:active {
+    transform: scale(0.97);
+}
+
+/* ── Hover solo donde hay puntero real ──
+   En táctil el tap dispara un falso :hover y el elemento se queda
+   "levantado" después de pulsarlo. */
+@media (hover: none) {
+    a:hover, button:hover, .btn:hover, .match-card:hover,
+    .btn-primary:hover, .btn-secondary:hover,
+    .nav-cta:hover, .nav-wc:hover, .send-btn:hover {
+        transform: none !important;
+    }
+}
+
+/* ── Render de texto consistente en todas las páginas ── */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+body {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Iconos SVG (sustituyen a los emojis de interfaz) ──
+   Heredan el color del texto y se alinean ópticamente con él. */
+.ico {
+    width: 1.05em;
+    height: 1.05em;
+    flex: 0 0 auto;
+    vertical-align: -0.15em;
+    stroke: currentColor;
+    fill: none;
+    pointer-events: none;
+}
+.ico-lg { width: 20px; height: 20px; }
+
+/* Icono + etiqueta alineados en los enlaces de navegación. */
+.nav-links a, .nav-link, .nav-cta, .nav-wc {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* El logo va sobre un degradado: la tinta blanca es la única legible en ambos extremos. */
+.logo-icon .ico { color: #fff; }
+
+/* ── Selección de texto en la marca ── */
+::selection {
+    background: rgba(0, 232, 122, 0.28);
+    color: #f0f4ff;
+}
+::-moz-selection {
+    background: rgba(0, 232, 122, 0.28);
+    color: #f0f4ff;
+}
+
+/* ── Foco de teclado visible y accesible ──
+   Solo aparece con navegación por teclado (focus-visible),
+   nunca roba el estilo al puntero. */
+:focus-visible {
+    outline: 2px solid var(--green, #00e87a);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+:focus:not(:focus-visible) {
+    outline: none;
+}
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--green, #00e87a);
+    outline-offset: 2px;
+}
+
+/* ── Scrollbar refinada acorde al tema oscuro ── */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 232, 122, 0.45);
+    background-clip: padding-box;
+}
+
+/* ── Objetivos táctiles mínimos en móvil ──
+   Enlaces de navegación e iconos-botón cómodos con el dedo. */
+@media (hover: none) and (pointer: coarse) {
+    nav a,
+    .nav-links a,
+    button {
+        min-height: 40px;
+    }
+}
+
+/* ── Respeto por reduced-motion en toda la app ──
+   Neutraliza animaciones decorativas y de entrada sin
+   romper transiciones de estado imprescindibles. */
+/* ── Reduced motion: menos y más suave, NO cero ──
+   Se elimina el DESPLAZAMIENTO (transform, animaciones de entrada, el canvas
+   ambiental), pero se conservan las transiciones de color y opacidad: son las
+   que comunican estado. Apagarlo todo deja al usuario sin feedback alguno. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        /* Nada de movimiento en el espacio... */
+        transition-property: color, background-color, border-color, opacity, box-shadow;
+        transition-duration: 120ms !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* ...y el transform se queda en reposo, sin animarse. */
+    *:hover, *:active, *:focus-visible {
+        transform: none !important;
+    }
+
+    /* Atmósfera puramente decorativa: fuera. */
+    #bg-canvas,
+    .parallax-ball {
+        display: none !important;
+    }
+}

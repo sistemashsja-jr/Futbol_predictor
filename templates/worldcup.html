@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FutboltAI — FIFA World Cup 2026</title>
     <meta name="description" content="Grupos, resultados y predicciones del Mundial FIFA 2026 USA/Canada/Mexico.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/futbolt.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
-            --bg: #04060f;
-            --card: rgba(255,255,255,0.03);
-            --card-b: rgba(255,255,255,0.07);
+            --bg: #060711;
+            --card: rgba(255, 255, 255, 0.035);
+            --card-b: rgba(255, 255, 255, 0.09);
             --green: #00e87a;
             --gold: #f59e0b;
             --purple: #7c3aed;
@@ -19,12 +20,18 @@
             --red: #ef4444;
             --text: #f0f4ff;
             --text2: #8892a4;
-            --text3: #3d4a5e;
+            --text3: #7c8797;
             --wc-gold: #FFD700;
             --wc-red: #c0392b;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'IBM Plex Sans', sans-serif;
         }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+        body { font-family: var(--font-body); background:var(--bg); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+
+        h1, h2, h3, h4, h5, h6, .logo, .nav-wc, .btn-primary, .btn-secondary, .page-title, .section-title, .form-title, .wc-title, .step-title, .step-num {
+            font-family: var(--font-display);
+        }
 
         /* ── HERO BANNER ── */
         .wc-hero {
@@ -32,7 +39,7 @@
                 radial-gradient(ellipse at 10% 50%, rgba(192,57,43,0.25) 0%, transparent 60%),
                 radial-gradient(ellipse at 90% 50%, rgba(0,130,60,0.2) 0%, transparent 60%),
                 radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.1) 0%, transparent 50%),
-                linear-gradient(180deg, #0b0d1f 0%, #04060f 100%);
+                linear-gradient(180deg, #0b0d1f 0%, var(--bg) 100%);
             padding: 100px 40px 50px;
             text-align: center;
             position: relative;
@@ -66,7 +73,6 @@
             width: 7px; height: 7px;
             background: var(--red);
             border-radius: 50%;
-            box-shadow: 0 0 8px var(--red);
             animation: pulse 1.5s infinite;
         }
 
@@ -132,7 +138,7 @@
         .logo-icon { width:30px; height:30px; background:linear-gradient(135deg,var(--green),var(--purple)); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; }
         .logo em { color:var(--green); font-style:normal; }
         .nav-right { display:flex; align-items:center; gap:6px; }
-        .nav-link { color:var(--text2); text-decoration:none; font-size:14px; font-weight:500; padding:7px 14px; border-radius:9px; transition:all 0.2s; }
+        .nav-link { color:var(--text2); text-decoration:none; font-size:14px; font-weight:500; padding:7px 14px; border-radius:9px; transition: var(--tr-ui); }
         .nav-link:hover { color:var(--text); background:var(--card); }
         .nav-link.active { color:var(--wc-gold); background:rgba(255,215,0,0.08); }
         .nav-wc { background:linear-gradient(135deg,#b8860b,var(--wc-gold)) !important; color:#1a0a00 !important; font-weight:700 !important; }
@@ -157,7 +163,7 @@
             font-family: inherit;
             cursor: pointer;
             border-bottom: 3px solid transparent;
-            transition: all 0.2s;
+            transition: var(--tr-ui);
             display: flex;
             align-items: center;
             gap: 8px;
@@ -194,7 +200,7 @@
             border: 1px solid var(--card-b);
             border-radius: 18px;
             overflow: hidden;
-            transition: all 0.3s;
+            transition: var(--tr-ui);
         }
 
         .group-card:hover { border-color: rgba(255,215,0,0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
@@ -258,7 +264,7 @@
             border-radius: 10px;
             font-size: 12px;
             border: 1px solid rgba(255,255,255,0.04);
-            transition: all 0.2s;
+            transition: var(--tr-ui);
         }
 
         .match-row:hover { background: rgba(255,255,255,0.04); }
@@ -331,7 +337,7 @@
             align-items: center;
             gap: 16px;
             margin-bottom: 10px;
-            transition: all 0.25s;
+            transition: var(--tr-ui);
             cursor: pointer;
         }
 
@@ -357,7 +363,7 @@
             border: none;
             cursor: pointer;
             font-family: inherit;
-            transition: all 0.2s;
+            transition: var(--tr-ui);
         }
 
         .predict-btn:hover { transform: scale(1.05); }
@@ -382,11 +388,12 @@
         .wc-select {
             width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--card-b);
             border-radius:12px; padding:12px 14px; color:var(--text); font-size:14px;
-            font-weight:600; font-family:inherit; outline:none; cursor:pointer; transition:all 0.2s;
+            font-weight:600; font-family:inherit; outline:none; cursor:pointer; transition: var(--tr-ui);
             appearance:none; -webkit-appearance:none;
         }
 
-        .wc-select:focus { border-color:rgba(255,215,0,0.4); box-shadow:0 0 15px rgba(255,215,0,0.08); }
+        /* Anillo de foco nítido en lugar de resplandor difuso. */
+        .wc-select:focus { border-color:var(--wc-gold); box-shadow:0 0 0 3px rgba(255,215,0,0.18); }
         .wc-select option { background:#0d0f1e; }
 
         .wc-vs { text-align:center; font-size:18px; font-weight:900; color:var(--text3); padding-bottom:12px; }
@@ -397,11 +404,12 @@
             color:#1a0a00; font-weight:800; font-size:15px;
             border:none; cursor:pointer; font-family:inherit;
             display:flex; align-items:center; justify-content:center; gap:8px;
-            transition:all 0.3s;
-            box-shadow: 0 0 25px rgba(255,215,0,0.2);
+            transition:transform 200ms cubic-bezier(0.25,1,0.5,1), box-shadow 200ms cubic-bezier(0.25,1,0.5,1);
+            /* Elevación con dirección, no halo: la luz cae desde arriba. */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
 
-        .wc-gen-btn:hover { transform:translateY(-2px); box-shadow:0 15px 35px rgba(255,215,0,0.3); }
+        .wc-gen-btn:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.5); }
         .wc-gen-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
 
         .wc-result { display:none; animation:slideUp 0.4s ease; }
@@ -483,17 +491,18 @@
             border-radius: 12px;
             padding: 10px 14px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.25s;
+            transition: var(--tr-ui);
             cursor: pointer;
         }
         .bracket-card:hover {
             border-color: var(--wc-gold);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255,215,0,0.15);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
         }
+        /* Estado activo: anillo nítido, no resplandor. */
         .bracket-card.active {
             border-color: var(--green);
-            box-shadow: 0 0 15px var(--green-glow);
+            box-shadow: 0 0 0 2px rgba(0,232,122,0.25);
         }
         .bc-team {
             display: flex;
@@ -537,9 +546,21 @@
             background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(0,232,122,0.08));
             border: 2px solid var(--wc-gold);
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(255,215,0,0.25);
-            animation: pulseScore 2s infinite;
+            /* El oro es el momento de celebración, pero se sostiene con el
+               borde y el fondo: elevación real y una entrada de una sola vez,
+               no un halo con pulso perpetuo. */
+            box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+            animation: championIn 700ms cubic-bezier(0.25, 1, 0.5, 1) both;
             min-width: 250px;
+        }
+
+        @keyframes championIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.96); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .champion-card { animation: none; }
         }
         .champion-flag {
             font-size: 64px;
@@ -562,25 +583,26 @@
     </style>
 </head>
 <body>
+{% include '_icons.html' %}
 
 <!-- HERO -->
-<div class="wc-hero">
-    <div class="wc-top-badge">
+<div class="wc-hero" style="position:relative; overflow:hidden;">
+    <div class="wc-top-badge" style="position:relative; z-index:2;">
         <div class="live-dot"></div>
         EN CURSO · Fase de Grupos · Jornada 2/3
     </div>
-    <div class="wc-title">
+    <div class="wc-title" style="position:relative; z-index:2;">
         <div class="flag-row">🇺🇸 🇨🇦 🇲🇽</div>
         <div>FIFA <span class="wc-gold">World Cup</span></div>
         <div class="wc-red">2026</div>
     </div>
-    <p class="wc-subtitle">11 Junio — 19 Julio 2026 · 48 Selecciones · 16 Grupos · 3 Países Sede</p>
-    <div class="host-row">
+    <p class="wc-subtitle" style="position:relative; z-index:2;">11 Junio — 19 Julio 2026 · 48 Selecciones · 16 Grupos · 3 Países Sede</p>
+    <div class="host-row" style="position:relative; z-index:2;">
         <div class="host-chip">🇺🇸 USA · 11 ciudades</div>
         <div class="host-chip">🇨🇦 Canadá · 3 ciudades</div>
         <div class="host-chip">🇲🇽 México · 3 ciudades</div>
     </div>
-    <div class="wc-counter">
+    <div class="wc-counter" style="position:relative; z-index:2;">
         <div class="wc-count-item"><div class="wc-count-num">48</div><div class="wc-count-lbl">Selecciones</div></div>
         <div class="wc-count-item"><div class="wc-count-num">16</div><div class="wc-count-lbl">Grupos</div></div>
         <div class="wc-count-item"><div class="wc-count-num">104</div><div class="wc-count-lbl">Partidos</div></div>
@@ -591,12 +613,14 @@
 
 <!-- NAV -->
 <nav>
-    <a href="/" class="logo"><div class="logo-icon">⚽</div>Futbolt<em>AI</em></a>
+    <a href="/" class="logo"><div class="logo-icon"><svg class="ico ico-lg" aria-hidden="true"><use href="#ico-balon"/></svg></div>Futbolt<em>AI</em></a>
     <div class="nav-right">
         <a href="/" class="nav-link">Inicio</a>
+        <a href="/partidos" class="nav-link"><svg class="ico" aria-hidden="true"><use href="#ico-calendario"/></svg> Partidos</a>
         <a href="/stats" class="nav-link">Estadísticas</a>
         <a href="/predictor" class="nav-link">Predictor</a>
-        <a href="/worldcup" class="nav-link nav-wc active">🏆 Mundial 2026</a>
+        <a href="/combinadas" class="nav-link"><svg class="ico" aria-hidden="true"><use href="#ico-boleto"/></svg> Cuotas Combinadas</a>
+        <a href="/worldcup" class="nav-link nav-wc active"><svg class="ico" aria-hidden="true"><use href="#ico-trofeo"/></svg> Mundial 2026</a>
     </div>
 </nav>
 
@@ -680,7 +704,7 @@
                 <div style="font-size:15px;color:var(--text2);margin-bottom:24px" id="bracketStatusText">Para jugar la fase eliminatoria, primero simula o juega la fase de grupos.</div>
                 <div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px;flex-wrap:wrap;">
                     <button class="wc-gen-btn" style="width:auto;padding:12px 24px;" onclick="simulateFullGroupStage()">⚡ Simular Fase de Grupos</button>
-                    <button class="wc-gen-btn" id="initBracketBtn" style="width:auto;padding:12px 24px;background:linear-gradient(135deg,var(--green),#00b85e);color:#002e1a;box-shadow:0 0 20px var(--green-glow);display:none;" onclick="initKnockoutBracket()">🏆 Inicializar Llaves</button>
+                    <button class="wc-gen-btn" id="initBracketBtn" style="width:auto;padding:12px 24px;background:linear-gradient(135deg,var(--green),#00b85e);color:#002e1a;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:none;" onclick="initKnockoutBracket()">🏆 Inicializar Llaves</button>
                 </div>
                 <div style="background:var(--card);border:1px solid rgba(255,215,0,0.2);border-radius:18px;padding:24px;max-width:600px;margin:0 auto;">
                     <div style="font-size:14px;color:var(--text2);margin-bottom:16px">Clasificados al momento:</div>
@@ -717,9 +741,9 @@ const WC_TEAMS = [
     "Países Bajos", "Japón", "Ucrania", "Túnez",
     "Bélgica", "Egipto", "Irán", "Nueva Zelanda",
     "España", "Cabo Verde", "Arabia Saudí", "Uruguay",
-    "Francia", "Senegal", "Bolivia", "Noruega",
+    "Francia", "Senegal", "Bolivia", "Suecia",
     "Argentina", "Argelia", "Austria", "Jordania",
-    "Portugal", "Jamaica", "Uzbekistán", "Colombia",
+    "Portugal", "Rep. D. Congo", "Uzbekistán", "Colombia",
     "Inglaterra", "Croacia", "Ghana", "Panamá"
 ];
 
@@ -731,19 +755,17 @@ let BRACKET_STATE = null;
 const FLAGS = {
     "Argentina":"🇦🇷","Brasil":"🇧🇷","Francia":"🇫🇷","España":"🇪🇸","Alemania":"🇩🇪",
     "Portugal":"🇵🇹","Inglaterra":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Países Bajos":"🇳🇱","Uruguay":"🇺🇾","Bélgica":"🇧🇪",
-    "Croacia":"🇭🇷","Italia":"🇮🇹","Colombia":"🇨🇴","México":"🇲🇽","Dinamarca":"🇩🇰",
+    "Croacia":"🇭🇷","Colombia":"🇨🇴","México":"🇲🇽",
     "Suiza":"🇨🇭","Japón":"🇯🇵","Marruecos":"🇲🇦","Senegal":"🇸🇳","Turquía":"🇹🇷",
     "Chequia":"🇨🇿","Rep. Checa":"🇨🇿","Australia":"🇦🇺","Ecuador":"🇪🇨","Ucrania":"🇺🇦","Canadá":"🇨🇦",
-    "Estados Unidos":"🇺🇸","Polonia":"🇵🇱","Chile":"🇨🇱","Arabia Saudí":"🇸🇦","Ghana":"🇬🇭",
-    "Jamaica":"🇯🇲","Venezuela":"🇻🇪","Perú":"🇵🇪","Honduras":"🇭🇳","Bolivia":"🇧🇴",
+    "Estados Unidos":"🇺🇸","Chile":"🇨🇱","Arabia Saudí":"🇸🇦","Ghana":"🇬🇭",
+    "Venezuela":"🇻🇪","Perú":"🇵🇪","Honduras":"🇭🇳","Bolivia":"🇧🇴",
     "Panamá":"🇵🇦","Paraguay":"🇵🇾","Serbia":"🇷🇸","Camerún":"🇨🇲","Argelia":"🇩🇿",
-    "Grecia":"🇬🇷","Irán":"🇮🇷","Austria":"🇦🇹","Costa de Marfil":"🇨🇮","Sudáfrica":"🇿🇦",
-    "DR Congo":"🇨🇩","Túnez":"🇹🇳",
-    "Corea del Sur":"🇰🇷","Qatar":"🇶🇦","Haití":"🇭🇹","Escocia":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-    "Curazao":"🇨🇼","Nueva Zelanda":"🇳🇿","Cabo Verde":"🇨🇻","Noruega":"🇳🇴",
-    "Jordania":"🇯🇴","Uzbekistán":"🇺🇿",
-    "Egipto":"🇪🇬",
-    "Bosnia":"🇧🇦"
+    "Irán":"🇮🇷","Austria":"🇦🇹","Costa de Marfil":"🇨🇮","Sudáfrica":"🇿🇦",
+    "Rep. D. Congo":"🇨🇩","DR Congo":"🇨🇩","Congo DR":"🇨🇩",
+    "Túnez":"🇹🇳","Corea del Sur":"🇰🇷","Qatar":"🇶🇦","Haití":"🇭🇹","Escocia":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+    "Curazao":"🇨🇼","Nueva Zelanda":"🇳🇿","Cabo Verde":"🇨🇻","Suecia":"🇸🇪",
+    "Jordania":"🇯🇴","Uzbekistán":"🇺🇿","Egipto":"🇪🇬","Bosnia":"🇧🇦"
 };
 
 // ── TABS ──
@@ -767,8 +789,13 @@ async function loadGroups() {
         if (cached) {
             try {
                 WC_STATE = JSON.parse(cached);
-                if (Object.keys(WC_STATE).length !== 12 || !WC_STATE["B"] || WC_STATE["B"].teams.some(t => t.name === "Italia") || WC_STATE["B"].matches[2].score !== "6-0" || WC_STATE["A"].matches[3].score !== "1-1") {
-                    throw new Error("Old structure");
+                // Invalidar cache si tiene Jamaica (equipo incorrecto) o estructura antigua
+                const hasJamaica = WC_STATE["K"] && WC_STATE["K"].teams.some(t => t.name === "Jamaica");
+                const hasItalia = Object.values(WC_STATE).some(g => g.teams.some(t => t.name === "Italia"));
+                const wrongCount = Object.keys(WC_STATE).length !== 12;
+                const wrongScore = !WC_STATE["B"] || WC_STATE["B"].matches[2].score !== "6-0";
+                if (hasJamaica || hasItalia || wrongCount || wrongScore) {
+                    throw new Error("Estructura antigua detectada – forzando recarga");
                 }
             } catch(e) {
                 WC_STATE = null;
@@ -1530,6 +1557,35 @@ async function renderQualified() {
 
 // Init
 loadGroups();
+
+// ── Parallax del hero ──
+// Antes: 8 querySelector por evento de scroll, sin throttle. Ahora las
+// referencias se cachean y la escritura se sincroniza con el repintado.
+const capasHero = [
+    { el: document.querySelector('.wc-hero .wc-top-badge'), factor: 0.22, desvanece: 280 },
+    { el: document.querySelector('.wc-hero .wc-title'),     factor: 0.18, desvanece: 400 },
+    { el: document.querySelector('.wc-hero .wc-subtitle'),  factor: 0.12, desvanece: 350 },
+    { el: document.querySelector('.wc-hero .host-row'),     factor: 0.15, desvanece: 350 },
+    { el: document.querySelector('.wc-hero .wc-counter'),   factor: 0.08, desvanece: 380 },
+].filter(c => c.el);
+
+const sinMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)');
+let pendiente = false;
+
+function pintarParallax() {
+    pendiente = false;
+    const y = window.scrollY;
+    for (const c of capasHero) {
+        c.el.style.transform = `translateY(${y * c.factor}px)`;
+        c.el.style.opacity = Math.max(0, 1 - y / c.desvanece);
+    }
+}
+
+window.addEventListener('scroll', () => {
+    if (sinMovimiento.matches || pendiente) return;
+    pendiente = true;
+    requestAnimationFrame(pintarParallax);
+}, { passive: true });
 </script>
 </body>
 </html>

@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutboltAI — La quiniela</title>
+    <meta name="description" content="Probabilidades 1-X-2 calculadas con simulación Monte Carlo sobre datos reales de cada equipo.">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/futbolt.css') }}">
+    <style>
+        :root {
+            /* El verde deja de ser un acento sobre negro y pasa a ser el suelo. */
+            --cesped:   #0A2C21;   /* césped bajo focos: la superficie */
+            --noche:    #061711;   /* capa profunda, verde-tintada (nunca negro neutro) */
+            --linea:    rgba(237,242,234,0.16);  /* cal: las líneas del campo */
+            --linea-fina: rgba(237,242,234,0.08);
+            --cal:      #EDF2EA;   /* la tinta */
+            --cal-dim:  #A9BCB0;   /* tinta secundaria */
+
+            /* Los tres resultados. Este ES el sistema de color. */
+            --uno:  #00E87A;   /* 1 · local */
+            --equis:#F5C518;   /* X · empate */
+            --dos:  #FF7A4D;   /* 2 · visitante */
+
+            --display: 'Archivo', sans-serif;
+            --body:    'IBM Plex Sans', sans-serif;
+            --mono:    'IBM Plex Mono', ui-monospace, monospace;
+
+            --z-nav: 100;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: var(--body);
+            background: var(--cesped);
+            color: var(--cal);
+            min-height: 100vh;
+        }
+
+        /* Tipografía display: ancha, de dorsal y cartelería de estadio. */
+        .display {
+            font-family: var(--display);
+            font-variation-settings: 'wdth' 118, 'wght' 800;
+            letter-spacing: -0.02em;
+            line-height: 1.02;
+            text-wrap: balance;
+        }
+
+        /* Cifras siempre tabulares: las columnas no bailan al actualizarse. */
+        .cifra {
+            font-family: var(--mono);
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: 'tnum' 1;
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: sticky; top: 0; z-index: var(--z-nav);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px;
+            padding: 0 clamp(16px, 4vw, 40px);
+            height: 64px;
+            background: color-mix(in srgb, var(--noche) 88%, transparent);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--linea);
+        }
+        .logo {
+            font-family: var(--display);
+            font-variation-settings: 'wdth' 112, 'wght' 800;
+            font-size: 19px; letter-spacing: -0.01em;
+            color: var(--cal); text-decoration: none;
+        }
+        .logo em { color: var(--uno); font-style: normal; }
+        .nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        .nav-links a {
+            color: var(--cal-dim); text-decoration: none;
+            font-size: 14px; font-weight: 500;
+            padding: 8px 12px; border-radius: 8px;
+            transition: color 160ms cubic-bezier(0.25,1,0.5,1),
+                        background-color 160ms cubic-bezier(0.25,1,0.5,1);
+        }
+        .nav-links a:hover { color: var(--cal); background: rgba(237,242,234,0.06); }
+
+        /* ── ESTRUCTURA ── */
+        .envoltura {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: clamp(32px, 6vw, 72px) clamp(16px, 4vw, 40px) 80px;
+        }
+
+        .portada {
+            display: grid;
+            grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+            gap: clamp(32px, 5vw, 64px);
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .portada { grid-template-columns: 1fr; }
+        }
+
+        /* ── TESIS ── */
+        .jornada {
+            font-family: var(--mono);
+            font-size: 12px; font-weight: 600;
+            letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--cal-dim);
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--linea);
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            font-size: clamp(38px, 5.4vw, 68px);
+            margin-bottom: 24px;
+        }
+        h1 .uno   { color: var(--uno); }
+        h1 .equis { color: var(--equis); }
+        h1 .dos   { color: var(--dos); }
+
+        .entradilla {
+            font-size: 16px;
+            line-height: 1.65;
+            color: var(--cal-dim);
+            max-width: 46ch;
+            text-wrap: pretty;
+            margin-bottom: 32px;
+        }
+        .entradilla strong { color: var(--cal); font-weight: 600; }
+
+        .acciones { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: var(--body);
+            font-size: 15px; font-weight: 600;
+            padding: 13px 22px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 160ms cubic-bezier(0.25,1,0.5,1),
+                        box-shadow 160ms cubic-bezier(0.25,1,0.5,1),
+                        background-color 160ms cubic-bezier(0.25,1,0.5,1);
+        }
+        .btn-fuerte {
+            background: var(--uno); color: #04140D;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+        }
+        .btn-fuerte:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,0.45); }
+        .btn-suave {
+            background: transparent; color: var(--cal);
+            border-color: var(--linea);
+        }
+        .btn-suave:hover { background: rgba(237,242,234,0.06); transform: translateY(-2px); }
+
+        /* ── PRECISIÓN MEDIDA (o su ausencia honesta) ── */
+        .medicion {
+            border-top: 1px solid var(--linea);
+            padding-top: 20px;
+        }
+        .medicion-titulo {
+            font-family: var(--mono);
+            font-size: 11px; font-weight: 600;
+            letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--cal-dim);
+            margin-bottom: 12px;
+        }
+        .medicion-cuerpo { font-size: 14px; line-height: 1.6; color: var(--cal-dim); }
+        .medicion-cuerpo .dato {
+            font-family: var(--mono);
+            font-variant-numeric: tabular-nums;
+            color: var(--cal); font-weight: 600;
+        }
+        .medicion-cifra {
+            font-family: var(--display);
+            font-variation-settings: 'wdth' 118, 'wght' 800;
+            font-size: 44px;
+            color: var(--uno);
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        /* ═══ LA QUINIELA · el elemento firma ═══
+           Cada fila es un partido real. Cada casilla, la probabilidad que el
+           modelo asigna a ese resultado. La casilla marcada es su pronóstico.
+           No es una metáfora: es literalmente lo que el motor produce. */
+        .boletin {
+            border: 1px solid var(--linea);
+            border-radius: 4px;              /* papel, no tarjeta */
+            background: var(--noche);
+            overflow: hidden;
+        }
+
+        .boletin-cabecera {
+            display: grid;
+            grid-template-columns: 1fr repeat(3, 58px);
+            gap: 0;
+            align-items: end;
+            padding: 16px 18px 12px;
+            border-bottom: 1px solid var(--linea);
+        }
+        .boletin-titulo {
+            font-family: var(--display);
+            font-variation-settings: 'wdth' 115, 'wght' 800;
+            font-size: 15px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .boletin-col {
+            font-family: var(--mono);
+            font-size: 13px; font-weight: 700;
+            text-align: center;
+        }
+        .boletin-col[data-col="1"] { color: var(--uno); }
+        .boletin-col[data-col="X"] { color: var(--equis); }
+        .boletin-col[data-col="2"] { color: var(--dos); }
+
+        .fila {
+            display: grid;
+            grid-template-columns: 1fr repeat(3, 58px);
+            align-items: stretch;
+            border-bottom: 1px solid var(--linea-fina);
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+            transition: background-color var(--dur-hover, 200ms) var(--ease-out, ease);
+        }
+        .fila:last-child { border-bottom: none; }
+        .fila:hover { background: rgba(0,232,122,0.05); }
+        .fila:focus-visible { outline-offset: -2px; }
+
+        .partido {
+            padding: 12px 18px;
+            display: flex; flex-direction: column; gap: 3px;
+            min-width: 0;
+        }
+        .equipos {
+            font-size: 14px; font-weight: 600;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+        .equipos .sep { color: var(--cal-dim); font-weight: 400; }
+        .contexto {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--cal-dim);
+        }
+
+        /* La casilla: se rellena de abajo a arriba con la probabilidad. */
+        .casilla {
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+            border-left: 1px solid var(--linea-fina);
+            isolation: isolate;
+        }
+        .relleno {
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            transform-origin: bottom;
+            transform: scaleY(var(--p, 0));
+            height: 100%;
+            opacity: 0.20;
+            z-index: -1;
+            animation: subir 700ms cubic-bezier(0.25, 1, 0.5, 1) both;
+            animation-delay: var(--retraso, 0ms);
+        }
+        @keyframes subir { from { transform: scaleY(0); } }
+
+        .casilla[data-col="1"] .relleno { background: var(--uno); }
+        .casilla[data-col="X"] .relleno { background: var(--equis); }
+        .casilla[data-col="2"] .relleno { background: var(--dos); }
+
+        .pct {
+            font-family: var(--mono);
+            font-variant-numeric: tabular-nums;
+            font-size: 13px; font-weight: 600;
+            color: var(--cal-dim);
+            padding: 14px 0;
+        }
+
+        /* La casilla marcada: el pronóstico del modelo. */
+        .casilla.marcada .pct { color: var(--cal); font-weight: 700; }
+        .casilla.marcada .relleno { opacity: 0.42; }
+        .casilla.marcada::after {
+            content: '';
+            position: absolute; inset: 4px;
+            border: 1.5px solid currentColor;
+            border-radius: 3px;
+            pointer-events: none;
+        }
+        .casilla.marcada[data-col="1"] { color: var(--uno); }
+        .casilla.marcada[data-col="X"] { color: var(--equis); }
+        .casilla.marcada[data-col="2"] { color: var(--dos); }
+
+        .boletin-pie {
+            padding: 14px 18px;
+            border-top: 1px solid var(--linea);
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--cal-dim);
+        }
+        .boletin-pie code {
+            font-family: var(--mono);
+            color: var(--cal);
+            font-size: 11px;
+        }
+
+        /* ═══ COMBINADAS · tarjetas de boleto ═══ */
+        .combis-seccion {
+            margin-top: clamp(40px, 6vw, 72px);
+        }
+        .combis-cabecera {
+            display: flex; align-items: baseline; justify-content: space-between;
+            gap: 16px; flex-wrap: wrap;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--linea);
+            margin-bottom: 24px;
+        }
+        .combis-cabecera h2 {
+            font-size: clamp(24px, 3vw, 34px);
+        }
+        .combis-nota {
+            font-size: 13px; line-height: 1.5;
+            color: var(--cal-dim);
+            max-width: 52ch;
+        }
+
+        .combis-rejilla {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        /* La tarjeta: boleto de apuesta. */
+        .boleto {
+            position: relative;
+            display: flex; flex-direction: column;
+            background:
+                linear-gradient(180deg, rgba(237,242,234,0.02), transparent 120px),
+                var(--noche);
+            border: 1px solid var(--linea);
+            border-radius: 14px;
+            transition: border-color var(--dur-hover, 200ms) var(--ease-out, ease),
+                        transform var(--dur-press, 160ms) var(--ease-out, ease),
+                        box-shadow var(--dur-hover, 200ms) var(--ease-out, ease);
+        }
+        .boleto:hover {
+            border-color: rgba(0,232,122,0.35);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+        }
+        /* Muesca de boleto: dos semicírculos recortados a media altura. */
+        .boleto::before, .boleto::after {
+            content: ''; position: absolute;
+            /* centrada sobre el divisor de puntos del pie (pie ≈ 75px de alto) */
+            top: calc(100% - 82px);
+            width: 14px; height: 14px; border-radius: 50%;
+            background: var(--cesped);
+            border: 1px solid var(--linea);
+        }
+        .boleto::before { left: -8px; clip-path: inset(0 0 0 50%); }
+        .boleto::after  { right: -8px; clip-path: inset(0 50% 0 0); }
+
+        .boleto-cabecera {
+            padding: 16px 18px 14px;
+            border-bottom: 1px dashed var(--linea);
+        }
+        .boleto-fila-top {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; margin-bottom: 8px;
+        }
+        /* Chip con el nº de selecciones. */
+        .boleto-combi {
+            font-family: var(--mono);
+            font-size: 10px; font-weight: 600;
+            letter-spacing: 0.04em; text-transform: uppercase;
+            color: var(--uno);
+            background: rgba(0,232,122,0.1);
+            border: 1px solid rgba(0,232,122,0.28);
+            border-radius: 999px;
+            padding: 2px 9px;
+        }
+        .boleto-cruce {
+            display: flex; align-items: center; gap: 8px;
+            font-family: var(--display);
+            font-variation-settings: 'wdth' 112, 'wght' 700;
+            font-size: 16px; line-height: 1.2;
+        }
+        .boleto-cruce .vs { color: var(--cal-dim); font-weight: 400; }
+        .boleto-meta {
+            font-family: var(--mono);
+            font-size: 11px; color: var(--cal-dim);
+            margin-top: 4px;
+        }
+        .boleto-hipo {
+            font-family: var(--mono);
+            font-size: 10px; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--focos, #F5C518);
+            border: 1px solid rgba(245,197,24,0.4);
+            border-radius: 999px;
+            padding: 2px 9px;
+            white-space: nowrap;
+        }
+
+        /* Cada selección: cadena de la combinada conectada por una línea. */
+        .patas { list-style: none; padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 13px; }
+        .pata { position: relative; display: flex; gap: 12px; align-items: flex-start; }
+        /* La línea que encadena las selecciones (visual de combinada real). */
+        .pata:not(:last-child)::before {
+            content: ''; position: absolute;
+            left: 4px; top: 15px; bottom: -13px;
+            width: 1.5px;
+            background: repeating-linear-gradient(
+                to bottom, var(--linea) 0 3px, transparent 3px 6px);
+        }
+        .pata .punto {
+            flex: 0 0 auto; width: 10px; height: 10px; margin-top: 4px;
+            border-radius: 50%;
+            background: var(--noche);
+            border: 2px solid var(--uno);
+            box-shadow: 0 0 0 3px rgba(0,232,122,0.12);
+        }
+        .pata-texto { min-width: 0; }
+        .pata-mercado {
+            font-family: var(--mono);
+            font-size: 10.5px; color: var(--cal-dim);
+            text-transform: uppercase; letter-spacing: 0.04em;
+            line-height: 1.3; margin-bottom: 1px;
+        }
+        .pata-seleccion { font-size: 14.5px; font-weight: 600; line-height: 1.3; }
+
+        /* El pie: la cuota es el héroe. */
+        .boleto-pie-cuota {
+            margin-top: auto;
+            display: flex; align-items: flex-end; justify-content: space-between;
+            gap: 12px;
+            padding: 14px 18px 16px;
+            border-top: 1px dashed var(--linea);
+            background: linear-gradient(180deg, transparent, rgba(0,232,122,0.06));
+        }
+        .boleto-prob-bloque { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+        .boleto-prob {
+            font-family: var(--mono);
+            font-size: 11px; color: var(--cal-dim);
+        }
+        .boleto-prob b { color: var(--cal); font-weight: 600; }
+        /* Medidor de probabilidad. */
+        .boleto-medidor {
+            height: 4px; border-radius: 999px;
+            background: rgba(237,242,234,0.1);
+            overflow: hidden; max-width: 120px;
+        }
+        .boleto-medidor span {
+            display: block; height: 100%;
+            background: var(--uno); border-radius: 999px;
+            transform-origin: left;
+            animation: llenarMedidor 600ms var(--ease-out, ease) both;
+        }
+        @keyframes llenarMedidor { from { transform: scaleX(0); } }
+        .boleto-cuota-bloque { text-align: right; }
+        .boleto-cuota-lbl {
+            font-family: var(--mono);
+            font-size: 9.5px; font-weight: 600;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--cal-dim); display: block; margin-bottom: 1px;
+        }
+        .boleto-cuota {
+            font-family: var(--mono);
+            font-variant-numeric: tabular-nums;
+            font-size: 30px; font-weight: 700;
+            color: var(--uno);
+            line-height: 0.95;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .boleto-medidor span { animation: none; }
+        }
+
+        /* Estados */
+        .estado {
+            padding: 40px 18px;
+            text-align: center;
+            color: var(--cal-dim);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .estado .titulo {
+            font-family: var(--display);
+            font-variation-settings: 'wdth' 112, 'wght' 700;
+            font-size: 18px;
+            color: var(--cal);
+            margin-bottom: 8px;
+        }
+
+        .esqueleto {
+            height: 14px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(237,242,234,0.05), rgba(237,242,234,0.11), rgba(237,242,234,0.05));
+            background-size: 200% 100%;
+            animation: brillo 1.4s linear infinite;
+        }
+        @keyframes brillo { to { background-position: -200% 0; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .relleno { animation: none; }
+            .esqueleto { animation: none; }
+        }
+
+        @media (max-width: 480px) {
+            .boletin-cabecera, .fila { grid-template-columns: 1fr repeat(3, 46px); }
+            .partido { padding: 11px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a class="logo" href="/">Futbolt<em>AI</em></a>
+    <div class="nav-links">
+        <a href="/partidos">Partidos</a>
+        <a href="/stats">Estadísticas</a>
+        <a href="/predictor">Predictor</a>
+        <a href="/combinadas">Cuotas Combinadas</a>
+        <a href="/worldcup">Mundial 2026</a>
+    </div>
+</nav>
+
+<main class="envoltura">
+    <div class="portada">
+
+        <!-- TESIS -->
+        <section>
+            <p class="jornada" id="jornada">Próximos partidos</p>
+
+            <h1 class="display">
+                Tres resultados.<br>
+                <span class="uno">1</span> · <span class="equis">X</span> · <span class="dos">2</span><br>
+                Diez mil simulaciones.
+            </h1>
+
+            <p class="entradilla">
+                Cada partido se simula <strong>10.000 veces</strong> con una distribución de
+                Poisson alimentada por los goles, la forma y la localía <strong>reales</strong>
+                de cada equipo. Lo que ves a la derecha no es una opinión: es la frecuencia
+                con la que cada resultado ocurrió en la simulación.
+            </p>
+
+            <div class="acciones">
+                <a class="btn btn-fuerte" href="/predictor">Abrir el predictor</a>
+                <a class="btn btn-suave" href="/partidos">Ver todos los partidos</a>
+            </div>
+
+            <!-- Precisión medida de verdad. Si no hay muestra, lo dice. -->
+            <div class="medicion">
+                <p class="medicion-titulo">Precisión medida</p>
+                <div class="medicion-cuerpo" id="medicion">
+                    <div class="esqueleto" style="width:80%"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LA QUINIELA · firma -->
+        <section class="boletin" aria-labelledby="titulo-boletin">
+            <header class="boletin-cabecera">
+                <h2 class="boletin-titulo" id="titulo-boletin">La quiniela</h2>
+                <span class="boletin-col" data-col="1">1</span>
+                <span class="boletin-col" data-col="X">X</span>
+                <span class="boletin-col" data-col="2">2</span>
+            </header>
+
+            <div id="filas">
+                <div class="estado" id="cargando">
+                    <div class="esqueleto" style="width:60%; margin:0 auto 10px"></div>
+                    <div class="esqueleto" style="width:40%; margin:0 auto"></div>
+                </div>
+            </div>
+
+            <footer class="boletin-pie" id="pie" hidden>
+                Probabilidad de cada resultado según <code>StatsEngine.simulate_match()</code>.
+                La casilla marcada es el pronóstico registrado del modelo, emitido
+                <strong>antes</strong> del pitido inicial y guardado sin posibilidad de reescritura.
+            </footer>
+        </section>
+
+    </div>
+
+    <!-- COMBINADAS · cuotas apostables -->
+    <section class="combis-seccion">
+        <header class="combis-cabecera">
+            <h2 class="display">Cuotas apostables</h2>
+            <p class="combis-nota" id="combis-nota">
+                Combinadas con <strong style="color:var(--cal)">cuota justa del modelo</strong>
+                (100 ÷ probabilidad, sin margen de casa). Sirve para detectar valor:
+                si tu casa paga más que esto, hay valor. No son garantías. +18.
+            </p>
+        </header>
+        <div class="combis-rejilla" id="combis">
+            <div class="estado" style="grid-column:1/-1">
+                <div class="esqueleto" style="width:50%; margin:0 auto"></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+const fmtPct = n => n.toFixed(1).replace('.', ',');
+
+function horaPartido(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+         + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
+function pintarQuiniela(partidos) {
+    const cont = document.getElementById('filas');
+    cont.innerHTML = '';
+
+    if (!partidos.length) {
+        cont.innerHTML = `
+            <div class="estado">
+                <div class="titulo">No hay partidos que simular</div>
+                No hay encuentros programados en los próximos días con historial
+                suficiente para calcular una probabilidad honesta.
+                <br><br>
+                <a class="btn btn-suave" href="/partidos">Ver el calendario</a>
+            </div>`;
+        return;
+    }
+
+    partidos.forEach((p, i) => {
+        // Clic en el partido -> predictor cargado con ese cruce exacto,
+        // donde ya se muestran las combinadas calculadas sobre el mismo motor.
+        const puedeAbrirPredictor = p.home.id && p.away.id && p.league_slug;
+        const fila = document.createElement(puedeAbrirPredictor ? 'a' : 'div');
+        fila.className = 'fila';
+        if (puedeAbrirPredictor) {
+            fila.href = `/predictor?league=${encodeURIComponent(p.league_slug)}`
+                      + `&home=${encodeURIComponent(p.home.id)}&away=${encodeURIComponent(p.away.id)}`;
+        }
+
+        const casillas = ['1', 'X', '2'].map(col => {
+            const prob = p.probs[col];
+            const marcada = p.pick === col ? ' marcada' : '';
+            const retraso = i * 60;
+            return `
+                <div class="casilla${marcada}" data-col="${col}"
+                     role="img"
+                     aria-label="${col === '1' ? 'Victoria local' : col === 'X' ? 'Empate' : 'Victoria visitante'}: ${fmtPct(prob)} por ciento${marcada ? '. Pronóstico del modelo' : ''}">
+                    <span class="relleno" style="--p:${(prob / 100).toFixed(3)}; --retraso:${retraso}ms"></span>
+                    <span class="pct">${Math.round(prob)}</span>
+                </div>`;
+        }).join('');
+
+        fila.innerHTML = `
+            <div class="partido">
+                <div class="equipos">${p.home.name} <span class="sep">·</span> ${p.away.name}</div>
+                <div class="contexto">${horaPartido(p.kickoff)} · ${p.league_name}</div>
+            </div>
+            ${casillas}`;
+        cont.appendChild(fila);
+    });
+
+    document.getElementById('pie').hidden = false;
+}
+
+function pintarMedicion(s) {
+    const el = document.getElementById('medicion');
+
+    // Sin muestra suficiente: se dice, no se rellena con un número inventado.
+    if (s.precision === null) {
+        el.innerHTML = `
+            Todavía no hay muestra para publicar una tasa de acierto.
+            Hacen falta <span class="dato">${s.muestra_minima}</span> partidos resueltos;
+            hay <span class="dato">${s.resueltos}</span>.
+            <br>
+            Ahora mismo <span class="dato">${s.pendientes}</span>
+            ${s.pendientes === 1 ? 'pronóstico está' : 'pronósticos están'} en juego,
+            esperando resultado.`;
+        return;
+    }
+
+    const porLiga = s.por_liga.map(l =>
+        `<span class="dato">${fmtPct(l.precision)}%</span> ${l.liga} (${l.n})`
+    ).join(' · ');
+
+    el.innerHTML = `
+        <div class="medicion-cifra">${fmtPct(s.precision)}%</div>
+        <span class="dato">${s.aciertos}</span> aciertos sobre
+        <span class="dato">${s.resueltos}</span> pronósticos resueltos.
+        ${porLiga ? '<br>' + porLiga : ''}`;
+}
+
+// Una combinada = una tarjeta de boleto (como una casa de apuestas).
+function tarjetaBoleto(card, combi) {
+    const patas = combi.selecciones.map(s => `
+        <li class="pata">
+            <span class="punto" aria-hidden="true"></span>
+            <span class="pata-texto">
+                <span class="pata-mercado">${s.mercado}</span>
+                <span class="pata-seleccion">${s.seleccion}</span>
+            </span>
+        </li>`).join('');
+
+    const n = combi.selecciones.length;
+    const chip = card.tipo === 'hipotetico'
+        ? `<span class="boleto-hipo">Cruce hipotético</span>`
+        : `<span class="boleto-combi">${n} ${n === 1 ? 'selección' : 'selecciones'}</span>`;
+    const meta = card.tipo === 'hipotetico'
+        ? `<div class="boleto-meta">${card.liga}</div>`
+        : `<div class="boleto-meta">${horaPartido(card.kickoff)} · ${card.liga}</div>`;
+
+    return `
+        <article class="boleto">
+            <header class="boleto-cabecera">
+                <div class="boleto-fila-top">
+                    <div class="boleto-cruce">${card.home.name} <span class="vs">·</span> ${card.away.name}</div>
+                    ${chip}
+                </div>
+                ${meta}
+            </header>
+            <ul class="patas">${patas}</ul>
+            <div class="boleto-pie-cuota">
+                <div class="boleto-prob-bloque">
+                    <span class="boleto-prob">Probabilidad <b>${fmtPct(combi.probabilidad)}%</b></span>
+                    <div class="boleto-medidor"><span style="transform:scaleX(${(combi.probabilidad / 100).toFixed(3)})"></span></div>
+                </div>
+                <div class="boleto-cuota-bloque">
+                    <span class="boleto-cuota-lbl">Cuota justa</span>
+                    <span class="boleto-cuota">${combi.cuota.toFixed(2)}</span>
+                </div>
+            </div>
+        </article>`;
+}
+
+function pintarCombinadas(tarjetas) {
+    const cont = document.getElementById('combis');
+    // El cruce destacado muestra su abanico (1–5 combinadas, como pediste);
+    // cada partido real aporta solo su mejor combinada, para no saturar.
+    const boletos = [];
+    for (const card of tarjetas) {
+        const combis = card.tipo === 'hipotetico'
+            ? card.combinadas.slice(0, 5)
+            : card.combinadas.slice(0, 1);
+        for (const combi of combis) boletos.push(tarjetaBoleto(card, combi));
+    }
+    if (!boletos.length) {
+        cont.innerHTML = `<div class="estado" style="grid-column:1/-1">
+            <div class="titulo">Sin combinadas disponibles</div>
+            No hay partidos próximos con datos suficientes para calcular cuotas honestas.</div>`;
+        return;
+    }
+    cont.innerHTML = boletos.join('');
+}
+
+async function cargar() {
+    try {
+        const [q, a, cruce, reales] = await Promise.all([
+            fetch('/api/quiniela?dias=4&limite=7').then(r => r.json()),
+            fetch('/api/accuracy').then(r => r.json()),
+            fetch('/api/combo_selecciones?local=Inglaterra&visitante=Argentina').then(r => r.json()),
+            fetch('/api/combos?limite=5').then(r => r.json())
+        ]);
+        pintarQuiniela(q.partidos || []);
+        pintarMedicion(a);
+        // El cruce de selecciones va primero (tu ejemplo), luego los reales.
+        const tarjetas = [];
+        if (cruce.tarjeta && cruce.tarjeta.combinadas.length) tarjetas.push(cruce.tarjeta);
+        tarjetas.push(...(reales.tarjetas || []));
+        pintarCombinadas(tarjetas);
+    } catch (e) {
+        document.getElementById('combis').innerHTML =
+            `<div class="estado" style="grid-column:1/-1">No se pudieron cargar las cuotas.</div>`;
+        document.getElementById('filas').innerHTML = `
+            <div class="estado">
+                <div class="titulo">No se pudieron cargar los partidos</div>
+                El servicio de datos no responde. Vuelve a intentarlo en unos minutos.
+                <br><br>
+                <button class="btn btn-suave" onclick="cargar()">Reintentar</button>
+            </div>`;
+        document.getElementById('medicion').textContent =
+            'No se pudo consultar el historial de aciertos.';
+    }
+}
+
+cargar();
+</script>
+
+</body>
+</html>

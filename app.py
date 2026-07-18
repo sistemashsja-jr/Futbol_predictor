@@ -2,14 +2,24 @@ from flask import Flask, render_template, request, jsonify
 from data_fetcher import FootballDataFetcher
 from ai_predictor import AIPredictor
 from stats_engine import StatsEngine
+from espn_fetcher import ESPNFetcher
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+import sys
+
+# Determinar si la aplicación se ejecuta dentro de un paquete PyInstaller
+if getattr(sys, 'frozen', False):
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    static_folder = os.path.join(sys._MEIPASS, 'static')
+    app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+else:
+    app = Flask(__name__)
 fetcher = FootballDataFetcher()
 predictor = AIPredictor()
+espn = ESPNFetcher()
 
 @app.route('/')
 def index():
@@ -27,30 +37,37 @@ def predictor_page():
 def api_leagues():
     leagues = [
         {"code": "WORLD_CUP_2026", "name": "🏆 Copa del Mundo 2026"},
+        {"code": "UCL", "name": "🇪🇺 UEFA Champions League"},
+        {"code": "LIB", "name": "🏆 Copa Libertadores"},
         {"code": "PD", "name": "🇪🇸 LaLiga (España)"},
         {"code": "PL", "name": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League (Inglaterra)"},
         {"code": "SA", "name": "🇮🇹 Serie A (Italia)"},
         {"code": "BL1", "name": "🇩🇪 Bundesliga (Alemania)"},
         {"code": "FL1", "name": "🇫🇷 Ligue 1 (Francia)"},
+        {"code": "ELC", "name": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 EFL Championship (Inglaterra)"},
         {"code": "ARG", "name": "🇦🇷 Liga Profesional (Argentina)"},
         {"code": "BRA", "name": "🇧🇷 Brasileirão (Brasil)"},
         {"code": "COL", "name": "🇨🇴 Liga BetPlay (Colombia)"},
         {"code": "MX", "name": "🇲🇽 Liga MX (México)"},
+        {"code": "ECU", "name": "🇪🇨 LigaPro (Ecuador)"},
+        {"code": "CHI", "name": "🇨🇱 Primera División (Chile)"},
+        {"code": "URU", "name": "🇺🇾 Primera División (Uruguay)"},
+        {"code": "PAR", "name": "🇵🇾 Primera División (Paraguay)"},
+        {"code": "PER", "name": "🇵🇪 Liga 1 (Perú)"},
+        {"code": "VEN", "name": "🇻🇪 Liga FUTVE (Venezuela)"},
+        {"code": "BOL", "name": "🇧🇴 Liga Tecno (Bolivia)"},
         {"code": "MLS", "name": "🇺🇸 Major League Soccer (EE.UU.)"},
         {"code": "SPL", "name": "🇸🇦 Saudi Pro League (Arabia)"},
         {"code": "PPL", "name": "🇵🇹 Primeira Liga (Portugal)"},
         {"code": "DED", "name": "🇳🇱 Eredivisie (Países Bajos)"},
         {"code": "TSL", "name": "🇹🇷 Süper Lig (Turquía)"},
+        {"code": "GRE", "name": "🇬🇷 Super League (Grecia)"},
         {"code": "BEL", "name": "🇧🇪 Jupiler Pro League (Bélgica)"},
         {"code": "SPD", "name": "🇪🇸 Segunda División (España)"},
         {"code": "SB", "name": "🇮🇹 Serie B (Italia)"},
         {"code": "SPR", "name": "🇷🇺 Russian Premier League"},
         {"code": "SPO", "name": "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scottish Premiership"},
         {"code": "AUS", "name": "🇦🇹 Austrian Bundesliga"},
-        {"code": "ECU", "name": "🇪🇨 LigaPro (Ecuador)"},
-        {"code": "CHI", "name": "🇨🇱 Primera División (Chile)"},
-        {"code": "URU", "name": "🇺🇾 Primera División (Uruguay)"},
-        {"code": "PAR", "name": "🇵🇾 Primera División (Paraguay)"},
         {"code": "J1", "name": "🇯🇵 J1 League (Japón)"},
         {"code": "CSL", "name": "🇨🇳 Chinese Super League"},
         {"code": "ISL", "name": "🇮🇳 Indian Super League"},
@@ -99,23 +116,37 @@ def api_predict():
 
     # Prompt enriquecido para la IA
     prompt = f"""
-    Eres FutboltAI, un analista experto del Mundial 2026. Genera un análisis DETALLADO y PRECISO para el partido {home} vs {away} en {league}.
+    Eres FutboltAI, un analista experto en pronósticos de fútbol de alta precisión. Genera un análisis DETALLADO y PRECISO para el partido {home} vs {away} en {league}.
     
     ═══════════════════════════════════════════════════════
     📊 SIMULACIÓN MONTE CARLO (10,000 iteraciones):
     ═══════════════════════════════════════════════════════
-    • Victoria {home}: {sim_data['probabilities']['home_win']}%
-    • Empate: {sim_data['probabilities']['draw']}%  
-    • Victoria {away}: {sim_data['probabilities']['away_win']}%
+    • Victoria {home}: {sim_data['probabilities']['home_win']}% (Cuota proyectada: {sim_data['odds']['home']})
+    • Empate: {sim_data['probabilities']['draw']}% (Cuota proyectada: {sim_data['odds']['draw']})
+    • Victoria {away}: {sim_data['probabilities']['away_win']}% (Cuota proyectada: {sim_data['odds']['away']})
     • Marcador más probable: {sim_data['exact_score']['score']} (Prob: {sim_data['exact_score']['probability']}%)
     • xG Local: {sim_data['expected_values']['home_goals']} | xG Visitante: {sim_data['expected_values']['away_goals']}
-    • Over 2.5 Goles: {sim_data['probabilities']['over_2_5_goals']}%
-    • Ambos Marcan (BTTS): {sim_data['probabilities']['btts']}%
+    • Over 2.5 Goles: {sim_data['probabilities']['over_2_5_goals']}% (Cuota: {sim_data['odds']['over_2_5']})
+    • Ambos Marcan (BTTS): {sim_data['probabilities']['btts']}% (Cuota: {sim_data['odds']['btts']})
     • Córners esperados: {sim_data['expected_values']['total_corners']}
     • Tarjetas amarillas: {sim_data['expected_values']['total_cards']}
+    • Saques de puerta (Goal Kicks): {sim_data['expected_values']['total_goalkicks']}
+    • Saques de banda (Throw-ins): {sim_data['expected_values']['total_throwins']}
+    • Paradas del portero (Saves): {sim_data['expected_values']['total_saves']} (Local: {sim_data['expected_values']['home_saves']} | Visitante: {sim_data['expected_values']['away_saves']})
+    • Remates Totales (Total Shots): {sim_data['expected_values']['total_total_shots']} (Local: {sim_data['expected_values']['home_total_shots']} | Visitante: {sim_data['expected_values']['away_total_shots']})
+    • Tiros al Arco (Shots on Target): {sim_data['expected_values']['total_shots']} (Local: {sim_data['expected_values']['home_shots']} | Visitante: {sim_data['expected_values']['away_shots']})
     
     ═══════════════════════════════════════════════════════
-    🏆 PERFIL REAL DE EQUIPOS (FIFA WC 2026):
+    📈 MODIFICADORES E IMPULSORES CLAVE:
+    ═══════════════════════════════════════════════════════
+    • Ajuste total de rendimiento local: {sim_data['modifiers']['home_modifier']}%
+    • Ajuste total de rendimiento visitante: {sim_data['modifiers']['away_modifier']}%
+    • Ventaja por factor local: +{sim_data['modifiers']['home_advantage']}%
+    • Diferencia de calidad SofaScore: {sim_data['modifiers']['quality_diff']} pts
+    • Nivel de forma local: {sim_data['modifiers']['home_form']}% | Visitante: {sim_data['modifiers']['away_form']}%
+    
+    ═══════════════════════════════════════════════════════
+    🏆 PERFIL REAL DE EQUIPOS:
     ═══════════════════════════════════════════════════════
     
     🏠 {home} (Ranking FIFA: #{home_rank}):
@@ -141,13 +172,13 @@ def api_predict():
     (Compara estilos, forma reciente, ventajas/desventajas tácticas, jugadores clave)
     
     ### ⚽ Pronóstico de Goles y Marcador
-    (xG, Over/Under, BTTS, marcador más probable y por qué)
+    (xG, Over/Under, BTTS, marcador más probable, cuota proyectada de valor y por qué)
     
     ### 📐 Córners y Tarjetas
-    (Análisis de la simulación Monte Carlo)
+    (Análisis de la simulación Monte Carlo e implicaciones tácticas)
     
-    ### 🔮 Conclusión Final
-    (Veredicto claro basado en ranking FIFA, forma real y simulación. Menciona al jugador decisivo)
+    ### 🔮 Conclusión Final y Veredicto
+    (Veredicto claro y cuota de apuesta con mejor balance de riesgo/recompensa basada en los modificadores)
     """
 
     
@@ -166,6 +197,437 @@ def api_predict():
         "home_form": home_stats.get('form', []),
         "away_form": away_stats.get('form', []),
     })
+
+# ══════════ INTEGRACIÓN CON OBSIDIAN ══════════
+import re
+from datetime import datetime
+
+OBSIDIAN_VAULT = os.getenv("OBSIDIAN_VAULT", r"D:\OBSIDIAN MEMORY\HIKI")
+
+def _obsidian_write(subcarpeta, nombre, contenido):
+    """Escribe una nota Markdown en la bóveda de Obsidian."""
+    carpeta = os.path.join(OBSIDIAN_VAULT, "FutboltAI", subcarpeta)
+    os.makedirs(carpeta, exist_ok=True)
+    seguro = re.sub(r'[<>:"/\\|?*]', '', nombre).strip()
+    ruta = os.path.join(carpeta, seguro)
+    with open(ruta, "w", encoding="utf-8") as f:
+        f.write(contenido)
+    return ruta
+
+def _guardar_prediccion(d):
+    """Escribe (o sobreescribe) la nota de una predicción en Obsidian."""
+    home, away = d.get('home', '?'), d.get('away', '?')
+    liga = d.get('league', '')
+    fecha = d.get('date') or datetime.now().strftime('%Y-%m-%d')
+    sim = d.get('sim_data') or {}
+    ai = d.get('ai_prediction', '')
+    p = sim.get('probabilities', {})
+    ex = sim.get('exact_score', {})
+    odds = sim.get('odds', {})
+    mk = sim.get('markets', {})
+
+    def tabla_mercado(titulo, m, lineas):
+        if not m:
+            return ""
+        filas = "\n".join(
+            f"| Más de {ln} | {m.get('o' + ln.replace('.', ''), '?')}% | {m.get('u' + ln.replace('.', ''), '?')}% |"
+            for ln in lineas)
+        return f"\n### {titulo} (esperados: {m.get('expected', '?')})\n| Línea | Sí | No |\n|---|---|---|\n{filas}\n"
+
+    contenido = f"""---
+tipo: prediccion
+fecha: {fecha}
+liga: "{liga}"
+local: "{home}"
+visitante: "{away}"
+prob_local: {p.get('home_win', '')}
+prob_empate: {p.get('draw', '')}
+prob_visitante: {p.get('away_win', '')}
+marcador_probable: "{ex.get('score', '')}"
+tags: [futboltai, prediccion]
+---
+
+# ⚽ {home} vs {away}
+**Liga:** {liga} · **Fecha:** {fecha}
+
+## 🎯 Probabilidades (Monte Carlo 10,000 sim.)
+| Resultado | Probabilidad | Cuota |
+|---|---|---|
+| {home} | {p.get('home_win', '?')}% | {odds.get('home', '?')} |
+| Empate | {p.get('draw', '?')}% | {odds.get('draw', '?')} |
+| {away} | {p.get('away_win', '?')}% | {odds.get('away', '?')} |
+
+**Marcador probable:** {ex.get('score', '?')} ({ex.get('probability', '?')}%) · **Ambos marcan:** {p.get('btts', '?')}%
+
+## 📊 Mercados
+{tabla_mercado('⚽ Goles', mk.get('goals'), ['1.5', '2.5', '3.5'])}{tabla_mercado('⏱️ Goles 1er Tiempo', mk.get('first_half'), ['0.5', '1.5', '2.5'])}{tabla_mercado('🚩 Córners', mk.get('corners'), ['8.5', '9.5', '10.5'])}{tabla_mercado('🟨 Tarjetas', mk.get('cards'), ['3.5', '4.5', '5.5'])}
+## 🤖 Análisis IA
+{ai}
+
+---
+*Generado por FutboltAI el {datetime.now().strftime('%Y-%m-%d %H:%M')}*
+"""
+    try:
+        ruta = _obsidian_write("Predicciones", f"{fecha} {home} vs {away}.md", contenido)
+        return jsonify({"ok": True, "path": ruta})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route('/api/obsidian/daily_note', methods=['POST'])
+def obsidian_daily_note():
+    d = request.json or {}
+    fecha = d.get('date') or datetime.now().strftime('%Y-%m-%d')
+    blocks = d.get('blocks') or espn.get_matches_by_date(fecha)
+
+    lineas = []
+    total = 0
+    for b in blocks:
+        lineas.append(f"\n## {b.get('flag', '')} {b.get('league', '')} ({b.get('country', '')})")
+        for m in b.get('matches', []):
+            total += 1
+            hora = (m.get('date') or '')[11:16]
+            h, a = m.get('home', {}), m.get('away', {})
+            if m.get('state') in ('in', 'post'):
+                estado = '🔴 EN VIVO' if m['state'] == 'in' else '✅ Final'
+                lineas.append(f"- {estado} · **{h.get('name')} {h.get('score', '')} - {a.get('score', '')} {a.get('name')}**")
+            else:
+                lineas.append(f"- 🕐 {hora} UTC · {h.get('name')} vs {a.get('name')}")
+
+    contenido = f"""---
+tipo: partidos-del-dia
+fecha: {fecha}
+total_partidos: {total}
+tags: [futboltai, partidos]
+---
+
+# 📅 Partidos del {fecha}
+{chr(10).join(lineas)}
+
+---
+*Generado por FutboltAI el {datetime.now().strftime('%Y-%m-%d %H:%M')}*
+"""
+    try:
+        ruta = _obsidian_write("Partidos", f"{fecha} Partidos.md", contenido)
+        return jsonify({"ok": True, "path": ruta, "total": total})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+# ══════════ PARTIDOS / POSICIONES (ESPN) ══════════
+
+@app.route('/partidos')
+def partidos():
+    return render_template('partidos.html')
+
+@app.route('/api/espn/leagues')
+def espn_leagues():
+    return jsonify(espn.get_leagues())
+
+
+@app.route('/api/news')
+def api_news():
+    return jsonify(espn.get_news(limit=6))
+
+@app.route('/api/espn/matches')
+def espn_matches():
+    date = request.args.get('date')  # YYYY-MM-DD (opcional, por defecto hoy)
+    return jsonify(espn.get_matches_by_date(date))
+
+@app.route('/api/espn/standings')
+def espn_standings():
+    league = request.args.get('league', 'esp.1')
+    return jsonify(espn.get_standings(league))
+
+@app.route('/api/espn/analysis')
+def espn_analysis():
+    league = request.args.get('league')
+    home = request.args.get('home')
+    away = request.args.get('away')
+    if not league or not home or not away:
+        return jsonify({"error": "Faltan parámetros (league, home, away)"}), 400
+    return jsonify(espn.get_match_analysis(league, home, away))
+
+def _to_engine_stats(side):
+    """Convierte el análisis ESPN al formato que espera StatsEngine.
+    Compartida por /api/predict_league y /api/predict_cross."""
+    s = side.get('stats', {})
+    table = side.get('table') or {}
+    gf = s.get('goals_for_avg', 1.3)
+    ga = s.get('goals_against_avg', 1.3)
+    win_pct = s.get('win_pct', 40) / 100.0
+    # rating estimado a partir de rendimiento reciente y posición
+    rank = table.get('rank')
+    rank_q = max(0.0, 1.0 - (rank - 1) / 19.0) if rank else 0.5
+    rating = round(6.3 + 1.4 * (0.55 * win_pct + 0.45 * rank_q), 2)
+    form = ['W' if f == 'G' else 'D' if f == 'E' else 'L' for f in s.get('form', [])][:5]
+    return {
+        "sofa_rating": rating,
+        "form": form,
+        "attack": {
+            "goals_per_game": gf,
+            "shots_on_target": round(2.2 + gf * 1.8, 1),
+            "corners": round(3.8 + gf * 0.9, 1),
+            "total_shots": round(7.5 + gf * 3.0, 1),
+        },
+        "defense": {"goals_conceded": ga},
+        "summary": {
+            "yellow_cards_per_game": 2.1,
+            "avg_goal_kicks": 7.5,
+            "avg_throw_ins": 21.0,
+            "avg_saves": round(1.5 + ga * 1.2, 1),
+        },
+    }
+
+
+def _recent_str(side):
+    return "\n".join(
+        f"      {m['date']}: {m['home_name']} {m['home_score']}-{m['away_score']} {m['away_name']} ({m['result']})"
+        for m in side.get('matches', [])[:5]
+    ) or "      Sin datos"
+
+
+_ANALYSIS_FOCUS = {
+    'completo': 'Análisis completo de todos los mercados.',
+    'corners': 'Enfócate especialmente en el mercado de CÓRNERS.',
+    'goles': 'Enfócate especialmente en el mercado de GOLES (Over/Under, marcador exacto).',
+    'tactico': 'Enfócate especialmente en el ANÁLISIS TÁCTICO de ambos equipos.',
+    'btts': 'Enfócate especialmente en el mercado AMBOS MARCAN (BTTS).',
+}
+
+
+@app.route('/api/predict_league', methods=['POST'])
+def api_predict_league():
+    """Predicción para partidos de liga con datos reales de ESPN:
+    últimos partidos + posiciones → Monte Carlo → análisis IA."""
+    data = request.json
+    slug = data.get('league_slug')
+    home_id = data.get('home_id')
+    away_id = data.get('away_id')
+    home = data.get('home')
+    away = data.get('away')
+    league_name = data.get('league', slug)
+    analysis_type = data.get('analysis_type', 'completo')
+
+    if not slug or not home_id or not away_id:
+        return jsonify({"error": "Faltan parámetros (league_slug, home_id, away_id)"}), 400
+
+    an = espn.get_match_analysis(slug, home_id, away_id)
+
+    home_engine = _to_engine_stats(an['home'])
+    away_engine = _to_engine_stats(an['away'])
+    sim_data, sim_raw = StatsEngine.simulate_match(home_engine, away_engine, return_raw=True)
+
+    recent_str = _recent_str
+    ht, at = an['home'].get('table') or {}, an['away'].get('table') or {}
+    hs, as_ = an['home']['stats'], an['away']['stats']
+
+    focus = _ANALYSIS_FOCUS.get(analysis_type, 'Análisis completo.')
+
+    prompt = f"""
+    Eres FutboltAI, analista experto en pronósticos de fútbol. Genera un análisis DETALLADO para {home} vs {away} en {league_name}. {focus}
+
+    ═══ SIMULACIÓN MONTE CARLO (10,000 iteraciones, datos reales ESPN) ═══
+    • Victoria {home}: {sim_data['probabilities']['home_win']}% (Cuota: {sim_data['odds']['home']})
+    • Empate: {sim_data['probabilities']['draw']}% (Cuota: {sim_data['odds']['draw']})
+    • Victoria {away}: {sim_data['probabilities']['away_win']}% (Cuota: {sim_data['odds']['away']})
+    • Marcador más probable: {sim_data['exact_score']['score']} ({sim_data['exact_score']['probability']}%)
+    • xG: {sim_data['expected_values']['home_goals']} vs {sim_data['expected_values']['away_goals']}
+    • BTTS (ambos marcan): {sim_data['probabilities']['btts']}%
+
+    ═══ MERCADOS (probabilidades Monte Carlo) ═══
+    ⚽ GOLES (esperados: {sim_data['markets']['goals']['expected']}):
+    • Over 1.5: {sim_data['markets']['goals']['o15']}% | Under 1.5: {sim_data['markets']['goals']['u15']}%
+    • Over 2.5: {sim_data['markets']['goals']['o25']}% | Under 2.5: {sim_data['markets']['goals']['u25']}%
+    • Over 3.5: {sim_data['markets']['goals']['o35']}% | Under 3.5: {sim_data['markets']['goals']['u35']}%
+    ⏱️ GOLES 1er TIEMPO (esperados: {sim_data['markets']['first_half']['expected']}):
+    • Over 0.5 HT: {sim_data['markets']['first_half']['o05']}% | Under 0.5 HT: {sim_data['markets']['first_half']['u05']}%
+    • Over 1.5 HT: {sim_data['markets']['first_half']['o15']}% | Under 1.5 HT: {sim_data['markets']['first_half']['u15']}%
+    • Over 2.5 HT: {sim_data['markets']['first_half']['o25']}% | Under 2.5 HT: {sim_data['markets']['first_half']['u25']}%
+    🚩 CÓRNERS (esperados: {sim_data['markets']['corners']['expected']}):
+    • Over 7.5: {sim_data['markets']['corners']['o75']}% | Over 8.5: {sim_data['markets']['corners']['o85']}%
+    • Over 9.5: {sim_data['markets']['corners']['o95']}% | Over 10.5: {sim_data['markets']['corners']['o105']}%
+    🟨 TARJETAS (esperadas: {sim_data['markets']['cards']['expected']}):
+    • Over 3.5: {sim_data['markets']['cards']['o35']}% | Over 4.5: {sim_data['markets']['cards']['o45']}% | Over 5.5: {sim_data['markets']['cards']['o55']}%
+
+    ═══ DATOS REALES (últimos {hs.get('played', 0)} partidos, fuente ESPN) ═══
+    🏠 {home} — Posición #{ht.get('rank', '?')} con {ht.get('points', '?')} pts:
+    • Forma: {' '.join(hs.get('form', []))} | {hs.get('wins')}G-{hs.get('draws')}E-{hs.get('losses')}P
+    • Goles: {hs.get('goals_for_avg')} a favor / {hs.get('goals_against_avg')} en contra por partido
+    • Over 2.5: {hs.get('over25_pct')}% | BTTS: {hs.get('btts_pct')}%
+    • Últimos resultados:
+{recent_str(an['home'])}
+
+    ✈️ {away} — Posición #{at.get('rank', '?')} con {at.get('points', '?')} pts:
+    • Forma: {' '.join(as_.get('form', []))} | {as_.get('wins')}G-{as_.get('draws')}E-{as_.get('losses')}P
+    • Goles: {as_.get('goals_for_avg')} a favor / {as_.get('goals_against_avg')} en contra por partido
+    • Over 2.5: {as_.get('over25_pct')}% | BTTS: {as_.get('btts_pct')}%
+    • Últimos resultados:
+{recent_str(an['away'])}
+
+    Escribe en ESPAÑOL con tono analítico profesional:
+    ### 🏟️ Análisis de Forma y Contexto en la Tabla
+    ### ⚽ Pronóstico de Goles y Marcador
+    ### 📐 Córners y Tarjetas
+    ### 🔮 Conclusión Final y Veredicto (apuesta con mejor balance riesgo/recompensa)
+    """
+
+    ai_response = predictor.get_prediction({
+        "message": prompt,
+        "data_context": sim_data
+    })
+
+    # Combinadas con cuota justa, calculadas sobre el mismo sim_data
+    # (mismo score_matrix ya generado; no hay simulación extra).
+    import combos as C
+    combinadas = C.combinadas_de(sim_data, home, away, raw=sim_raw)
+
+    return jsonify({
+        "sim_data": sim_data,
+        "ai_prediction": ai_response,
+        "home_crest": data.get('home_logo', ''),
+        "away_crest": data.get('away_logo', ''),
+        "home_rank": ht.get('rank', ''),
+        "away_rank": at.get('rank', ''),
+        "home_form": home_engine['form'],
+        "away_form": away_engine['form'],
+        "home_recent": an['home'].get('matches', [])[:5],
+        "away_recent": an['away'].get('matches', [])[:5],
+        "combinadas": combinadas,
+    })
+
+
+@app.route('/api/espn/all_teams')
+def espn_all_teams():
+    """Todos los equipos de las ligas principales en una sola lista, cada
+    uno con su liga de origen. Alimenta la opción "Todas las Ligas" del
+    predictor: buscar cualquier equipo sin fijar antes una sola competición.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    leagues = espn.get_leagues()
+
+    def cargar(liga):
+        try:
+            data = espn.get_standings(liga['slug'])
+        except Exception:
+            return []
+        vistos, out = set(), []
+        for e in data.get('entries', []):
+            tid = e.get('team_id')
+            if not tid or tid in vistos:
+                continue
+            vistos.add(tid)
+            out.append({
+                'team_id': tid, 'team': e.get('team', '?'), 'logo': e.get('logo', ''),
+                'league_slug': liga['slug'], 'league_name': liga['name'], 'flag': liga.get('flag', ''),
+            })
+        return out
+
+    equipos = []
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        for lote in pool.map(cargar, leagues):
+            equipos.extend(lote)
+    equipos.sort(key=lambda t: t['team'])
+    return jsonify(equipos)
+
+
+@app.route('/api/predict_cross', methods=['POST'])
+def api_predict_cross():
+    """Predicción entre equipos de CUALQUIER liga ("Todas las Ligas"): cada
+    equipo conserva su propia competición, tabla y calendario — ESPN no
+    permite mezclarlas bajo un slug compartido, así que aquí no se fuerza
+    uno. Misma Monte Carlo, mismas combinadas; solo cambia de dónde sale
+    el análisis de cada lado."""
+    data = request.json
+    home_slug = data.get('home_slug')
+    away_slug = data.get('away_slug')
+    home_id = data.get('home_id')
+    away_id = data.get('away_id')
+    home = data.get('home')
+    away = data.get('away')
+    analysis_type = data.get('analysis_type', 'completo')
+
+    if not all([home_slug, away_slug, home_id, away_id, home, away]):
+        return jsonify({"error": "Faltan parámetros (home_slug, away_slug, home_id, away_id, home, away)"}), 400
+
+    an = espn.get_match_analysis_cross(home_slug, home_id, away_slug, away_id)
+
+    home_engine = _to_engine_stats(an['home'])
+    away_engine = _to_engine_stats(an['away'])
+    sim_data, sim_raw = StatsEngine.simulate_match(home_engine, away_engine, return_raw=True)
+
+    ht, at = an['home'].get('table') or {}, an['away'].get('table') or {}
+    hs, as_ = an['home']['stats'], an['away']['stats']
+    home_league, away_league = an['home']['league'], an['away']['league']
+
+    focus = _ANALYSIS_FOCUS.get(analysis_type, 'Análisis completo.')
+
+    prompt = f"""
+    Eres FutboltAI, analista experto en pronósticos de fútbol. Genera un análisis DETALLADO
+    para {home} ({home_league}) vs {away} ({away_league}). Es un cruce hipotético entre equipos
+    de competiciones distintas: acláralo en el análisis en vez de tratarlos como si compartieran liga. {focus}
+
+    ═══ SIMULACIÓN MONTE CARLO (10,000 iteraciones, datos reales ESPN) ═══
+    • Victoria {home}: {sim_data['probabilities']['home_win']}% (Cuota: {sim_data['odds']['home']})
+    • Empate: {sim_data['probabilities']['draw']}% (Cuota: {sim_data['odds']['draw']})
+    • Victoria {away}: {sim_data['probabilities']['away_win']}% (Cuota: {sim_data['odds']['away']})
+    • Marcador más probable: {sim_data['exact_score']['score']} ({sim_data['exact_score']['probability']}%)
+    • xG: {sim_data['expected_values']['home_goals']} vs {sim_data['expected_values']['away_goals']}
+    • BTTS (ambos marcan): {sim_data['probabilities']['btts']}%
+
+    ═══ MERCADOS (probabilidades Monte Carlo) ═══
+    ⚽ GOLES (esperados: {sim_data['markets']['goals']['expected']}):
+    • Over 1.5: {sim_data['markets']['goals']['o15']}% | Under 1.5: {sim_data['markets']['goals']['u15']}%
+    • Over 2.5: {sim_data['markets']['goals']['o25']}% | Under 2.5: {sim_data['markets']['goals']['u25']}%
+    • Over 3.5: {sim_data['markets']['goals']['o35']}% | Under 3.5: {sim_data['markets']['goals']['u35']}%
+    🚩 CÓRNERS (esperados: {sim_data['markets']['corners']['expected']}):
+    • Over 8.5: {sim_data['markets']['corners']['o85']}% | Over 9.5: {sim_data['markets']['corners']['o95']}%
+    🟨 TARJETAS (esperadas: {sim_data['markets']['cards']['expected']}):
+    • Over 3.5: {sim_data['markets']['cards']['o35']}% | Over 4.5: {sim_data['markets']['cards']['o45']}%
+
+    ═══ DATOS REALES (cada equipo en SU PROPIA liga) ═══
+    🏠 {home} — {home_league} · Posición #{ht.get('rank', '?')} con {ht.get('points', '?')} pts:
+    • Forma: {' '.join(hs.get('form', []))} | {hs.get('wins')}G-{hs.get('draws')}E-{hs.get('losses')}P
+    • Goles: {hs.get('goals_for_avg')} a favor / {hs.get('goals_against_avg')} en contra por partido
+    • Over 2.5: {hs.get('over25_pct')}% | BTTS: {hs.get('btts_pct')}%
+    • Últimos resultados:
+{_recent_str(an['home'])}
+
+    ✈️ {away} — {away_league} · Posición #{at.get('rank', '?')} con {at.get('points', '?')} pts:
+    • Forma: {' '.join(as_.get('form', []))} | {as_.get('wins')}G-{as_.get('draws')}E-{as_.get('losses')}P
+    • Goles: {as_.get('goals_for_avg')} a favor / {as_.get('goals_against_avg')} en contra por partido
+    • Over 2.5: {as_.get('over25_pct')}% | BTTS: {as_.get('btts_pct')}%
+    • Últimos resultados:
+{_recent_str(an['away'])}
+
+    Escribe en ESPAÑOL con tono analítico profesional:
+    ### 🏟️ Análisis de Forma y Contexto (dos ligas distintas)
+    ### ⚽ Pronóstico de Goles y Marcador
+    ### 📐 Córners y Tarjetas
+    ### 🔮 Conclusión Final y Veredicto (apuesta con mejor balance riesgo/recompensa)
+    """
+
+    ai_response = predictor.get_prediction({
+        "message": prompt,
+        "data_context": sim_data
+    })
+
+    import combos as C
+    combinadas = C.combinadas_de(sim_data, home, away, raw=sim_raw)
+
+    return jsonify({
+        "sim_data": sim_data,
+        "ai_prediction": ai_response,
+        "home_crest": data.get('home_logo', ''),
+        "away_crest": data.get('away_logo', ''),
+        "home_rank": ht.get('rank', ''),
+        "away_rank": at.get('rank', ''),
+        "home_form": home_engine['form'],
+        "away_form": away_engine['form'],
+        "home_recent": an['home'].get('matches', [])[:5],
+        "away_recent": an['away'].get('matches', [])[:5],
+        "combinadas": combinadas,
+    })
+
 
 @app.route('/worldcup')
 def worldcup():
@@ -280,6 +742,176 @@ def ask():
         traceback.print_exc()
         return jsonify({"error": str(e), "details": traceback.format_exc()}), 500
 
+# ── QUINIELA REAL ─────────────────────────────────────────
+# Partidos reales de ESPN + Monte Carlo alimentada con datos reales.
+# Nada aquí usa random: mismas entradas, mismo pronóstico.
+
+@app.route('/preview')
+def preview():
+    return render_template('preview.html')
+
+
+@app.route('/combinadas')
+def combinadas_page():
+    return render_template('combinadas.html')
+
+
+@app.route('/api/quiniela')
+def api_quiniela():
+    """1-X-2 real de los próximos partidos. Registra cada pronóstico."""
+    from datetime import datetime, timedelta
+    import real_stats, prediction_log
+
+    dias = int(request.args.get('dias', 3))
+    limite = int(request.args.get('limite', 8))
+
+    partidos = []
+    for i in range(dias):
+        fecha = (datetime.now() + timedelta(days=i)).strftime('%Y-%m-%d')
+        try:
+            bloques = espn.get_matches_by_date(fecha)
+        except Exception:
+            continue
+        for b in bloques or []:
+            if b.get('extra'):
+                continue  # solo ligas principales
+            for m in b.get('matches', []):
+                if m.get('state') != 'pre':
+                    continue
+                m['_slug'] = b['slug']
+                m['_league'] = b['league']
+                m['_flag'] = b.get('flag', '')
+                partidos.append(m)
+
+    filas = real_stats.quiniela_de(espn, partidos)[:limite]
+
+    # Se registra el pronóstico ANTES del partido. INSERT OR IGNORE:
+    # una vez emitido, no se reescribe nunca.
+    for f in filas:
+        prediction_log.record(
+            match_id=f['match_id'], league_slug=f['league_slug'],
+            league_name=f['league_name'], home=f['home']['name'],
+            away=f['away']['name'], kickoff=f['kickoff'],
+            p_home=f['probs']['1'], p_draw=f['probs']['X'], p_away=f['probs']['2'],
+            state='pre'
+        )
+
+    return jsonify({
+        'partidos': filas,
+        'mercados': real_stats.mercados_fiables(),
+    })
+
+
+@app.route('/api/combos')
+def api_combos():
+    """Apuestas combinadas con cuota justa del modelo, sobre partidos reales."""
+    from datetime import datetime, timedelta
+    import real_stats, combos as C
+    from stats_engine import StatsEngine
+
+    dias = int(request.args.get('dias', 4))
+    limite = int(request.args.get('limite', 6))
+
+    partidos = []
+    for i in range(dias):
+        fecha = (datetime.now() + timedelta(days=i)).strftime('%Y-%m-%d')
+        try:
+            bloques = espn.get_matches_by_date(fecha)
+        except Exception:
+            continue
+        for b in bloques or []:
+            if b.get('extra'):
+                continue
+            for m in b.get('matches', []):
+                if m.get('state') != 'pre':
+                    continue
+                m['_slug'] = b['slug']; m['_league'] = b['league']
+                partidos.append(m)
+
+    tarjetas = []
+    for m in partidos:
+        local = real_stats.team_strength(espn, m['_slug'], m['home'].get('id'), m['home'].get('name', '?'))
+        visit = real_stats.team_strength(espn, m['_slug'], m['away'].get('id'), m['away'].get('name', '?'))
+        if not local or not visit:
+            continue
+        sim, sim_raw = StatsEngine.simulate_match(local, visit, simulations=10000, return_raw=True)
+        combis = C.combinadas_de(sim, local['name'], visit['name'], raw=sim_raw)
+        if not combis:
+            continue
+        tarjetas.append({
+            'home': {'name': local['name'], 'logo': m['home'].get('logo'), 'id': m['home'].get('id')},
+            'away': {'name': visit['name'], 'logo': m['away'].get('logo'), 'id': m['away'].get('id')},
+            'liga': m['_league'], 'league_slug': m['_slug'], 'kickoff': m.get('date'),
+            'tipo': 'real', 'combinadas': combis,
+        })
+        if len(tarjetas) >= limite:
+            break
+
+    return jsonify({
+        'tarjetas': tarjetas,
+        'nota': 'Cuota justa del modelo (100 / probabilidad), sin margen de casa. '
+                'Sirve para detectar valor: si tu casa paga más, hay valor. '
+                'No son garantías. Juega con responsabilidad · +18.',
+    })
+
+
+@app.route('/api/combo_selecciones')
+def api_combo_selecciones():
+    """Combinada de un cruce de selecciones (Mundial). Datos de perfil reales.
+
+    Cruce hipotético de eliminatoria: 'clasifica' = gana en 90' o penaltis.
+    """
+    import combos as C
+    from stats_engine import StatsEngine
+
+    local_n = request.args.get('local', 'Inglaterra')
+    visit_n = request.args.get('visitante', 'Argentina')
+
+    l = fetcher.get_team_stats(local_n)
+    v = fetcher.get_team_stats(visit_n)
+    if not l or not v:
+        return jsonify({'error': 'Selección sin perfil'}), 404
+
+    sim, sim_raw = StatsEngine.simulate_match(l, v, simulations=10000, return_raw=True)
+    combis = C.combinadas_de(sim, local_n, visit_n, raw=sim_raw, es_eliminatoria=True)
+
+    return jsonify({
+        'tarjeta': {
+            'home': {'name': local_n}, 'away': {'name': visit_n},
+            'liga': 'Mundial 2026 · cruce hipotético', 'kickoff': None,
+            'tipo': 'hipotetico', 'combinadas': combis,
+        },
+        'nota': 'Cruce hipotético con datos de perfil reales de cada selección. '
+                'Cuota justa del modelo, sin margen de casa. +18.',
+    })
+
+
+@app.route('/api/accuracy')
+def api_accuracy():
+    """Precisión REAL. Combina en vivo (forward) + backtest histórico.
+
+    - 'live': pronósticos emitidos antes del partido y resueltos después.
+      Es la evidencia fuerte, pero tarda en acumular muestra.
+    - 'backtest': el modelo corrido sobre partidos pasados con datos
+      punto-en-el-tiempo. Evidencia más débil, disponible ya.
+    """
+    import prediction_log, backtest
+    try:
+        prediction_log.resolve_pending(espn)
+    except Exception:
+        pass
+    datos = prediction_log.stats()
+    bt = backtest.leer_cache()
+    if bt:
+        datos['backtest'] = {
+            'precision': bt.get('precision'),
+            'total': bt.get('total'),
+            'por_liga': bt.get('por_liga', []),
+            'generado': bt.get('generado'),
+        }
+    return jsonify(datos)
+
+
 @app.route('/api/match_stats')
 def get_match_stats():
     date = request.args.get('date', '2026-02-18')
@@ -288,4 +920,13 @@ def get_match_stats():
     return jsonify(stats)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    is_frozen = getattr(sys, 'frozen', False)
+    debug_mode = not is_frozen
+    
+    if is_frozen:
+        import webbrowser
+        import threading
+        # Abrir el navegador automáticamente a los 1.5 segundos
+        threading.Timer(1.5, lambda: webbrowser.open("http://127.0.0.1:5001")).start()
+        
+    app.run(debug=debug_mode, port=5001)
