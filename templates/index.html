@@ -891,7 +891,7 @@
                 <svg class="ico" aria-hidden="true"><use href="#ico-balon"/></svg> Partidos Destacados
                 <span class="badge">HOY</span>
             </div>
-            <a href="/stats" class="see-all">Ver todos <span class="flecha" aria-hidden="true">→</span></a>
+            <a href="/partidos" class="see-all">Ver todos <span class="flecha" aria-hidden="true">→</span></a>
         </div>
 
         <div class="matches-grid" id="matchesList">
@@ -1124,56 +1124,66 @@ initParticles();
 animParticles();
 window.addEventListener('resize', () => { resize(); initParticles(); });
 
-// ── LOAD MATCHES ──
-const LEAGUES = {
-    PD: { name:'LaLiga', flag:'🇪🇸' },
-    PL: { name:'Premier', flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-    SA: { name:'Serie A', flag:'🇮🇹' },
-    BL1: { name:'Bundesliga', flag:'🇩🇪' }
-};
+// ── LOAD MATCHES (partidos reales del día, vía ESPN) ──
+function escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 async function loadMatches() {
     const container = document.getElementById('matchesList');
     try {
-        const resp = await fetch('/api/data?league=PD');
-        const data = await resp.json();
+        const resp = await fetch('/api/espn/matches');
+        const blocks = await resp.json();
+        const all = [];
+        (blocks || []).forEach(b => {
+            (b.matches || []).forEach(m => all.push({ ...m, league: b.league, flag: b.flag }));
+        });
+        if (!all.length) throw new Error('sin partidos hoy');
+
+        // en vivo primero, luego los próximos por hora, los jugados al final
+        const rank = s => s === 'in' ? 0 : s === 'pre' ? 1 : 2;
+        all.sort((a, b) => rank(a.state) - rank(b.state) || (a.date || '').localeCompare(b.date || ''));
+
         container.innerHTML = '';
-        const fixtures = data.fixtures.slice(0, 4);
-        fixtures.forEach((m, i) => {
-            const date = new Date(m.utcDate);
-            const timeStr = date.toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' }) + ' · ' + date.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
-            const homeShort = m.homeTeam.name.split(' ').slice(0,2).join(' ');
-            const awayShort = m.awayTeam.name.split(' ').slice(0,2).join(' ');
-            const odds = [
-                { label: '1', val: (1.5 + Math.random()).toFixed(2) },
-                { label: 'X', val: (3.0 + Math.random()*0.5).toFixed(2) },
-                { label: '2', val: (1.8 + Math.random()*1.5).toFixed(2) }
-            ];
-            const pred = Math.random() > 0.5 ? 'Victoria Local' : (Math.random() > 0.5 ? 'Empate' : 'Victoria Visitante');
+        all.slice(0, 6).forEach(m => {
+            const home = m.home || {}, away = m.away || {};
+            const homeShort = escHtml((home.short || home.name || '?').split(' ').slice(0,2).join(' '));
+            const awayShort = escHtml((away.short || away.name || '?').split(' ').slice(0,2).join(' '));
+            const homeLogo = home.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(homeShort)}&background=1a1a2e&color=00e87a&bold=true&size=40`;
+            const awayLogo = away.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(awayShort)}&background=1a1a2e&color=a78bfa&bold=true&size=40`;
+
+            let centerTop, centerMid;
+            if (m.state === 'in') {
+                centerTop = `🔴 ${escHtml(m.status_text || 'EN VIVO')}`;
+                centerMid = `${home.score ?? 0} - ${away.score ?? 0}`;
+            } else if (m.state === 'post') {
+                centerTop = escHtml(m.status_text || 'Finalizado');
+                centerMid = `${home.score ?? 0} - ${away.score ?? 0}`;
+            } else {
+                const d = new Date(m.date);
+                centerTop = isNaN(d) ? '' : d.toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+                centerMid = 'VS';
+            }
+
             const card = document.createElement('a');
             card.className = 'match-card';
-            card.href = '/predictor';
+            card.href = '/partidos';
             card.innerHTML = `
                 <div class="match-team">
                     <div class="team-logo-wrap">
-                        <img class="team-crest" src="https://ui-avatars.com/api/?name=${encodeURIComponent(homeShort)}&background=1a1a2e&color=00e87a&bold=true&size=40" onerror="this.src='https://ui-avatars.com/api/?name=?&background=1a1a2e&color=fff&size=40'">
+                        <img class="team-crest" src="${homeLogo}" onerror="this.src='https://ui-avatars.com/api/?name=?&background=1a1a2e&color=fff&size=40'">
                         <div class="team-name-big">${homeShort}</div>
                     </div>
                 </div>
                 <div class="match-center">
-                    <div class="match-time">${timeStr}</div>
-                    <div class="match-vs">VS</div>
-                    <div class="match-league">LaLiga · J${24+i}</div>
-                    <div class="match-odds">
-                        <div class="odd highlight"><span class="odd-label">1</span><span class="odd-val">${odds[0].val}</span></div>
-                        <div class="odd"><span class="odd-label">X</span><span class="odd-val">${odds[1].val}</span></div>
-                        <div class="odd"><span class="odd-label">2</span><span class="odd-val">${odds[2].val}</span></div>
-                    </div>
-                    <div class="prediction-pill">🤖 ${pred}</div>
+                    <div class="match-time">${centerTop}</div>
+                    <div class="match-vs">${centerMid}</div>
+                    <div class="match-league">${m.flag || ''} ${escHtml(m.league || '')}</div>
+                    <div class="prediction-pill">🔮 Ver análisis IA</div>
                 </div>
                 <div class="match-team right">
                     <div class="team-logo-wrap right">
-                        <img class="team-crest" src="https://ui-avatars.com/api/?name=${encodeURIComponent(awayShort)}&background=1a1a2e&color=a78bfa&bold=true&size=40" onerror="this.src='https://ui-avatars.com/api/?name=?&background=1a1a2e&color=fff&size=40'">
+                        <img class="team-crest" src="${awayLogo}" onerror="this.src='https://ui-avatars.com/api/?name=?&background=1a1a2e&color=fff&size=40'">
                         <div class="team-name-big">${awayShort}</div>
                     </div>
                 </div>
@@ -1181,7 +1191,7 @@ async function loadMatches() {
             container.appendChild(card);
         });
     } catch(e) {
-        container.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">No se pudieron cargar los partidos</p>';
+        container.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">No se pudieron cargar los partidos de hoy</p>';
     }
 }
 
