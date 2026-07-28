@@ -1,0 +1,155 @@
+Tipos de apuesta o líneas a realizar en un partido 
+
+
+
+Sí. Aquí tienes una lista amplia de los tipos de apuestas que suelen ofrecer las casas de apuestas para un partido de fútbol.
+
+ Resultado del partido
+
+1. Ganador del partido (1X2)
+2. Doble oportunidad
+3. Empate no válido (Draw No Bet)
+4. Clasifica a la siguiente ronda
+5. Gana cualquiera de las mitades
+6. Resultado al descanso
+7. Resultado al descanso/final
+8. Resultado exacto
+9. Resultado correcto al descanso
+10. Equipo que marca primero
+11. Equipo que marca último
+12. Equipo que gana por 1 gol
+13. Equipo que gana por 2 o más goles
+14. Victoria sin recibir gol
+
+### Goles
+
+15. Más/Menos de goles (Over/Under)
+16. Más/Menos goles del equipo local
+17. Más/Menos goles del equipo visitante
+18. Ambos equipos anotan (BTTS)
+19. Ambos equipos anotan y gana un equipo
+20. Número exacto de goles
+21. Total de goles par o impar
+22. Equipo marca más de X goles
+23. Equipo marca menos de X goles
+24. Habrá gol en ambas mitades
+25. Habrá gol en la primera mitad
+26. Habrá gol en la segunda mitad
+27. Último gol del partido
+28. Primer gol del partido
+29. Minuto del primer gol
+30. Minuto del último gol
+31. Gol antes del minuto 10
+32. Gol después del minuto 80
+33. Ningún gol
+
+### Hándicap
+
+34. Hándicap europeo
+35. Hándicap asiático
+36. Hándicap de goles por equipo
+37. Hándicap al descanso
+
+### Córners
+
+38. Total de córners
+39. Córners del equipo local
+40. Córners del equipo visitante
+41. Primer córner
+42. Último córner
+43. Equipo con más córners
+44. Hándicap de córners
+45. Córners en la primera mitad
+46. Córners en la segunda mitad
+47. Número exacto de córners
+48. Córners pares o impares
+
+### Tarjetas
+
+49. Total de tarjetas
+50. Tarjetas del equipo local
+51. Tarjetas del equipo visitante
+52. Primera tarjeta
+53. Última tarjeta
+54. Equipo con más tarjetas
+55. Tarjeta roja sí/no
+56. Número exacto de tarjetas
+57. Hándicap de tarjetas
+
+### Tiros
+
+58. Total de tiros
+59. Total de tiros a puerta
+60. Tiros del equipo local
+61. Tiros del equipo visitante
+62. Tiros a puerta de un jugador
+63. Primer tiro a puerta
+64. Último tiro a puerta
+
+### Jugadores
+
+65. Jugador marca en cualquier momento
+66. Primer goleador
+67. Último goleador
+68. Doblete de un jugador
+69. Hat-trick de un jugador
+70. Jugador da una asistencia
+71. Jugador recibe tarjeta
+72. Jugador realiza X tiros
+73. Jugador realiza X tiros a puerta
+
+### Penaltis y VAR
+
+74. Se concede un penalti
+75. Penalti convertido
+76. Penalti fallado
+77. Penalti para un equipo específico
+78. Decisión VAR sí/no
+
+### Saques de esquina especiales
+
+79. Primer equipo en llegar a 3 córners
+80. Primer equipo en llegar a 5 córners
+81. Primer equipo en llegar a 7 córners
+
+### Especiales del partido
+
+82. Ambos equipos reciben tarjeta
+83. Ambos equipos obtienen más de X córners
+84. Ambos equipos marcan en ambas mitades
+85. Ambos equipos marcan y más de 2.5 goles
+86. Ambos equipos marcan y menos de 4.5 goles
+87. Gana un equipo y más de X córners
+88. Gana un equipo y más de X tarjetas
+
+### Mitades
+
+89. Ganador de la primera mitad
+90. Ganador de la segunda mitad
+91. Más goles en la primera mitad
+92. Más goles en la segunda mitad
+93. Empate en la primera mitad
+94. Empate en la segunda mitad
+
+### Estadísticas del equipo
+
+95. Equipo mantiene la portería en cero
+96. Equipo marca en ambas mitades
+97. Equipo anota primero y gana
+98. Equipo remonta el partido
+99. Equipo gana después de ir perdiendo
+100. Equipo gana de principio a fin
+
+### Combinadas (Bet Builder)
+
+101. Resultado + goles
+102. Resultado + ambos anotan
+103. Resultado + córners
+104. Resultado + tarjetas
+105. Goleador + resultado
+106. Goleador + tiros
+107. Córners + tarjetas
+108. Goles + córners
+109. Goles + tarjetas
+110. Combinación personalizada de múltiples mercados
+

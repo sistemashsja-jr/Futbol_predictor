@@ -922,11 +922,15 @@ def get_match_stats():
 if __name__ == '__main__':
     is_frozen = getattr(sys, 'frozen', False)
     debug_mode = not is_frozen
-    
+    # El ejecutable empaquetado no recibe PORT del entorno, así que cae en
+    # el 5001 de siempre; en desarrollo, el runner de preview asigna el
+    # puerto libre vía esta variable en vez de un valor fijo.
+    port = int(os.environ.get('PORT', 5001))
+
     if is_frozen:
         import webbrowser
         import threading
         # Abrir el navegador automáticamente a los 1.5 segundos
-        threading.Timer(1.5, lambda: webbrowser.open("http://127.0.0.1:5001")).start()
-        
-    app.run(debug=debug_mode, port=5001)
+        threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
+
+    app.run(debug=debug_mode, port=port)

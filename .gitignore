@@ -1,0 +1,21 @@
+# Entornos
+.venv/
+__pycache__/
+*.pyc
+
+# Secretos (no versionar)
+.env
+"(2).env"
+(2).env
+
+# Artefactos de build
+build/
+dist/
+*.spec.bak
+
+# Datos y logs locales
+predictions.db
+*.log
+
+# Otros
+.impeccable/
