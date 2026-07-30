@@ -516,7 +516,10 @@ def api_predict_league():
 
         home_engine = _to_engine_stats(an['home'])
         away_engine = _to_engine_stats(an['away'])
-        sim_data, sim_raw = StatsEngine.simulate_match(home_engine, away_engine, return_raw=True)
+        n_sims = 2500 if os.getenv("RENDER") else 10000
+        sim_data, sim_raw = StatsEngine.simulate_match(
+            home_engine, away_engine, simulations=n_sims, return_raw=True
+        )
 
         recent_str = _recent_str
         ht, at = an['home'].get('table') or {}, an['away'].get('table') or {}
@@ -658,7 +661,10 @@ def api_predict_cross():
 
         home_engine = _to_engine_stats(an['home'])
         away_engine = _to_engine_stats(an['away'])
-        sim_data, sim_raw = StatsEngine.simulate_match(home_engine, away_engine, return_raw=True)
+        n_sims = 2500 if os.getenv("RENDER") else 10000
+        sim_data, sim_raw = StatsEngine.simulate_match(
+            home_engine, away_engine, simulations=n_sims, return_raw=True
+        )
 
         ht, at = an['home'].get('table') or {}, an['away'].get('table') or {}
         hs, as_ = an['home']['stats'], an['away']['stats']

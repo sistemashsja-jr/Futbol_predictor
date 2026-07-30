@@ -87,8 +87,14 @@ class AIPredictor:
             data_context = str(data_context)
         
         # Integración de Simulación Monte Carlo para Córners
+        # En Render (512 MB) entrenar RandomForest agota la RAM → HTTP 502.
         monte_carlo_info = ""
-        if "corner" in user_message.lower() or "esquina" in user_message.lower() or "pronóstico" in user_message.lower():
+        on_render = bool(os.getenv("RENDER"))
+        if (not on_render) and (
+            "corner" in user_message.lower()
+            or "esquina" in user_message.lower()
+            or "pronóstico" in user_message.lower()
+        ):
             # Realizamos predicción avanzada con ML (Random Forest)
             # Usando promedios de Bodø vs Inter como base
             ml_pred = StatsEngine.predict_advanced(7.0, 7.0, 0.5, 0.5, 1.2, 1.8, 4.65, 5.30, 4.5, 4.0, 2.0, 2.2, 7.5, 7.5, 21.0, 21.0, 3.0, 3.0, 10.0, 10.0)
@@ -160,6 +166,13 @@ class AIPredictor:
                     return response.text + "\n\n*(Análisis impulsado por Gemini 2.0)*"
                 except Exception:
                     continue
+
+        # En Render el plan free mata requests largas → no encadenar proveedores lentos.
+        if on_render:
+            return """
+### ⚠️ Modo de Reserva (Render)
+Las APIs de IA no respondieron a tiempo. Las probabilidades Monte Carlo de la simulación siguen siendo válidas en el panel.
+            """
 
         # 3. NVIDIA NIM (Llama 3.3 70B) - potente pero lento
         if self.nvidia_client:
