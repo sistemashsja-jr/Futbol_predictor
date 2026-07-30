@@ -499,31 +499,32 @@ _ANALYSIS_FOCUS = {
 def api_predict_league():
     """Predicción para partidos de liga con datos reales de ESPN:
     últimos partidos + posiciones → Monte Carlo → análisis IA."""
-    data = request.json
-    slug = data.get('league_slug')
-    home_id = data.get('home_id')
-    away_id = data.get('away_id')
-    home = data.get('home')
-    away = data.get('away')
-    league_name = data.get('league', slug)
-    analysis_type = data.get('analysis_type', 'completo')
+    try:
+        data = request.json or {}
+        slug = data.get('league_slug')
+        home_id = data.get('home_id')
+        away_id = data.get('away_id')
+        home = data.get('home')
+        away = data.get('away')
+        league_name = data.get('league', slug)
+        analysis_type = data.get('analysis_type', 'completo')
 
-    if not slug or not home_id or not away_id:
-        return jsonify({"error": "Faltan parámetros (league_slug, home_id, away_id)"}), 400
+        if not slug or not home_id or not away_id:
+            return jsonify({"error": "Faltan parámetros (league_slug, home_id, away_id)"}), 400
 
-    an = espn.get_match_analysis(slug, home_id, away_id)
+        an = espn.get_match_analysis(slug, home_id, away_id)
 
-    home_engine = _to_engine_stats(an['home'])
-    away_engine = _to_engine_stats(an['away'])
-    sim_data, sim_raw = StatsEngine.simulate_match(home_engine, away_engine, return_raw=True)
+        home_engine = _to_engine_stats(an['home'])
+        away_engine = _to_engine_stats(an['away'])
+        sim_data, sim_raw = StatsEngine.simulate_match(home_engine, away_engine, return_raw=True)
 
-    recent_str = _recent_str
-    ht, at = an['home'].get('table') or {}, an['away'].get('table') or {}
-    hs, as_ = an['home']['stats'], an['away']['stats']
+        recent_str = _recent_str
+        ht, at = an['home'].get('table') or {}, an['away'].get('table') or {}
+        hs, as_ = an['home']['stats'], an['away']['stats']
 
-    focus = _ANALYSIS_FOCUS.get(analysis_type, 'Análisis completo.')
+        focus = _ANALYSIS_FOCUS.get(analysis_type, 'Análisis completo.')
 
-    prompt = f"""
+        prompt = f"""
     Eres FutboltAI, analista experto en pronósticos de fútbol. Genera un análisis DETALLADO para {home} vs {away} en {league_name}. {focus}
 
     ═══ SIMULACIÓN MONTE CARLO (10,000 iteraciones, datos reales ESPN) ═══
@@ -571,29 +572,31 @@ def api_predict_league():
     ### 🔮 Conclusión Final y Veredicto (apuesta con mejor balance riesgo/recompensa)
     """
 
-    ai_response = predictor.get_prediction({
-        "message": prompt,
-        "data_context": sim_data
-    })
+        ai_response = predictor.get_prediction({
+            "message": prompt,
+            "data_context": sim_data
+        })
 
-    # Combinadas con cuota justa, calculadas sobre el mismo sim_data
-    # (mismo score_matrix ya generado; no hay simulación extra).
-    import combos as C
-    combinadas = C.combinadas_de(sim_data, home, away, raw=sim_raw)
+        import combos as C
+        combinadas = C.combinadas_de(sim_data, home, away, raw=sim_raw)
 
-    return jsonify({
-        "sim_data": sim_data,
-        "ai_prediction": ai_response,
-        "home_crest": data.get('home_logo', ''),
-        "away_crest": data.get('away_logo', ''),
-        "home_rank": ht.get('rank', ''),
-        "away_rank": at.get('rank', ''),
-        "home_form": home_engine['form'],
-        "away_form": away_engine['form'],
-        "home_recent": an['home'].get('matches', [])[:5],
-        "away_recent": an['away'].get('matches', [])[:5],
-        "combinadas": combinadas,
-    })
+        return jsonify({
+            "sim_data": sim_data,
+            "ai_prediction": ai_response,
+            "home_crest": data.get('home_logo', ''),
+            "away_crest": data.get('away_logo', ''),
+            "home_rank": ht.get('rank', ''),
+            "away_rank": at.get('rank', ''),
+            "home_form": home_engine['form'],
+            "away_form": away_engine['form'],
+            "home_recent": an['home'].get('matches', [])[:5],
+            "away_recent": an['away'].get('matches', [])[:5],
+            "combinadas": combinadas,
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Error en predicción: {e}"}), 500
 
 
 @app.route('/api/espn/all_teams')
@@ -638,31 +641,32 @@ def api_predict_cross():
     permite mezclarlas bajo un slug compartido, así que aquí no se fuerza
     uno. Misma Monte Carlo, mismas combinadas; solo cambia de dónde sale
     el análisis de cada lado."""
-    data = request.json
-    home_slug = data.get('home_slug')
-    away_slug = data.get('away_slug')
-    home_id = data.get('home_id')
-    away_id = data.get('away_id')
-    home = data.get('home')
-    away = data.get('away')
-    analysis_type = data.get('analysis_type', 'completo')
+    try:
+        data = request.json or {}
+        home_slug = data.get('home_slug')
+        away_slug = data.get('away_slug')
+        home_id = data.get('home_id')
+        away_id = data.get('away_id')
+        home = data.get('home')
+        away = data.get('away')
+        analysis_type = data.get('analysis_type', 'completo')
 
-    if not all([home_slug, away_slug, home_id, away_id, home, away]):
-        return jsonify({"error": "Faltan parámetros (home_slug, away_slug, home_id, away_id, home, away)"}), 400
+        if not all([home_slug, away_slug, home_id, away_id, home, away]):
+            return jsonify({"error": "Faltan parámetros (home_slug, away_slug, home_id, away_id, home, away)"}), 400
 
-    an = espn.get_match_analysis_cross(home_slug, home_id, away_slug, away_id)
+        an = espn.get_match_analysis_cross(home_slug, home_id, away_slug, away_id)
 
-    home_engine = _to_engine_stats(an['home'])
-    away_engine = _to_engine_stats(an['away'])
-    sim_data, sim_raw = StatsEngine.simulate_match(home_engine, away_engine, return_raw=True)
+        home_engine = _to_engine_stats(an['home'])
+        away_engine = _to_engine_stats(an['away'])
+        sim_data, sim_raw = StatsEngine.simulate_match(home_engine, away_engine, return_raw=True)
 
-    ht, at = an['home'].get('table') or {}, an['away'].get('table') or {}
-    hs, as_ = an['home']['stats'], an['away']['stats']
-    home_league, away_league = an['home']['league'], an['away']['league']
+        ht, at = an['home'].get('table') or {}, an['away'].get('table') or {}
+        hs, as_ = an['home']['stats'], an['away']['stats']
+        home_league, away_league = an['home']['league'], an['away']['league']
 
-    focus = _ANALYSIS_FOCUS.get(analysis_type, 'Análisis completo.')
+        focus = _ANALYSIS_FOCUS.get(analysis_type, 'Análisis completo.')
 
-    prompt = f"""
+        prompt = f"""
     Eres FutboltAI, analista experto en pronósticos de fútbol. Genera un análisis DETALLADO
     para {home} ({home_league}) vs {away} ({away_league}). Es un cruce hipotético entre equipos
     de competiciones distintas: acláralo en el análisis en vez de tratarlos como si compartieran liga. {focus}
@@ -707,27 +711,31 @@ def api_predict_cross():
     ### 🔮 Conclusión Final y Veredicto (apuesta con mejor balance riesgo/recompensa)
     """
 
-    ai_response = predictor.get_prediction({
-        "message": prompt,
-        "data_context": sim_data
-    })
+        ai_response = predictor.get_prediction({
+            "message": prompt,
+            "data_context": sim_data
+        })
 
-    import combos as C
-    combinadas = C.combinadas_de(sim_data, home, away, raw=sim_raw)
+        import combos as C
+        combinadas = C.combinadas_de(sim_data, home, away, raw=sim_raw)
 
-    return jsonify({
-        "sim_data": sim_data,
-        "ai_prediction": ai_response,
-        "home_crest": data.get('home_logo', ''),
-        "away_crest": data.get('away_logo', ''),
-        "home_rank": ht.get('rank', ''),
-        "away_rank": at.get('rank', ''),
-        "home_form": home_engine['form'],
-        "away_form": away_engine['form'],
-        "home_recent": an['home'].get('matches', [])[:5],
-        "away_recent": an['away'].get('matches', [])[:5],
-        "combinadas": combinadas,
-    })
+        return jsonify({
+            "sim_data": sim_data,
+            "ai_prediction": ai_response,
+            "home_crest": data.get('home_logo', ''),
+            "away_crest": data.get('away_logo', ''),
+            "home_rank": ht.get('rank', ''),
+            "away_rank": at.get('rank', ''),
+            "home_form": home_engine['form'],
+            "away_form": away_engine['form'],
+            "home_recent": an['home'].get('matches', [])[:5],
+            "away_recent": an['away'].get('matches', [])[:5],
+            "combinadas": combinadas,
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Error en predicción: {e}"}), 500
 
 
 @app.route('/worldcup')

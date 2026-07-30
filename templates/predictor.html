@@ -1470,7 +1470,19 @@ async function generatePrediction() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(cuerpo)
         });
-        const data = await resp.json();
+        const raw = await resp.text();
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (_) {
+            throw new Error(
+                `Respuesta no JSON (HTTP ${resp.status}). ` +
+                `Abre la app en http://127.0.0.1:5001/predictor o en tu URL real de Render, no en un enlace de ejemplo.`
+            );
+        }
+        if (!resp.ok) {
+            throw new Error(data.error || (`HTTP ${resp.status}`));
+        }
 
         clearInterval(stepInterval);
         
@@ -1503,7 +1515,7 @@ async function generatePrediction() {
             complete: () => {
                 loadingState.classList.remove('visible');
                 document.getElementById('genBtn').disabled = false;
-                renderError('No se pudo conectar con el servidor (' + e.message + '). Verifica que la app Flask esté corriendo.');
+                renderError('No se pudo completar la predicción: ' + e.message);
             }
         });
     }
