@@ -20,10 +20,18 @@ if getattr(sys, 'frozen', False):
 else:
     app = Flask(__name__)
 
+# Detrás del proxy HTTPS de Render, para que url_for(_external=True)
+# (callback de Google OAuth) genere https:// y no http://.
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 # Necesaria para firmar la cookie de sesión (quién quedó logueado). En
 # producción real hay que fijar FLASK_SECRET_KEY en el .env; sin ella,
 # cada reinicio del server invalida las sesiones existentes.
 app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.urandom(32)
+if os.getenv("RENDER"):
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["PREFERRED_URL_SCHEME"] = "https"
 
 fetcher = FootballDataFetcher()
 predictor = AIPredictor()
@@ -1011,4 +1019,5 @@ if __name__ == '__main__':
         # Abrir el navegador automáticamente a los 1.5 segundos
         threading.Timer(1.5, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
 
-    app.run(debug=debug_mode, port=port)
+    # 0.0.0.0 permite acceso externo (Render / Docker); en local sigue OK.
+    app.run(host="0.0.0.0", debug=debug_mode, port=port)
