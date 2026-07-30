@@ -1,3 +1,6 @@
+"""Script opcional (no forma parte del servidor web).
+Instalar aparte: python -m pip install soccerdata
+"""
 import soccerdata as sd
 import pandas as pd
 import sys

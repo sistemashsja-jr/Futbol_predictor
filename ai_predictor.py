@@ -6,7 +6,13 @@ import anthropic
 import requests
 from stats_engine import StatsEngine
 from groq import Groq
-from mistralai.client import Mistral
+try:
+    from mistralai.client import Mistral
+except ImportError:  # API nueva del paquete mistralai
+    try:
+        from mistralai import Mistral
+    except ImportError:
+        Mistral = None
 
 load_dotenv()
 

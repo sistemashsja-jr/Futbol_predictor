@@ -10,7 +10,6 @@ pandas
 numpy
 scipy
 scikit-learn
-soccerdata
 lxml
 openpyxl
 authlib

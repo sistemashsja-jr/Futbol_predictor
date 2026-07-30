@@ -275,10 +275,15 @@ def api_predict():
 import re
 from datetime import datetime
 
+# En local apunta a tu bóveda; en Render (sin OBSIDIAN_VAULT) se desactiva.
 OBSIDIAN_VAULT = os.getenv("OBSIDIAN_VAULT", r"D:\OBSIDIAN MEMORY\HIKI")
+_OBSIDIAN_ACTIVO = bool(os.getenv("OBSIDIAN_VAULT")) or not os.getenv("RENDER")
+
 
 def _obsidian_write(subcarpeta, nombre, contenido):
-    """Escribe una nota Markdown en la bóveda de Obsidian."""
+    """Escribe una nota Markdown en la bóveda de Obsidian (solo si hay ruta usable)."""
+    if not _OBSIDIAN_ACTIVO:
+        return None
     carpeta = os.path.join(OBSIDIAN_VAULT, "FutboltAI", subcarpeta)
     os.makedirs(carpeta, exist_ok=True)
     seguro = re.sub(r'[<>:"/\\|?*]', '', nombre).strip()
@@ -342,6 +347,8 @@ tags: [futboltai, prediccion]
 """
     try:
         ruta = _obsidian_write("Predicciones", f"{fecha} {home} vs {away}.md", contenido)
+        if ruta is None:
+            return jsonify({"ok": False, "error": "Obsidian no disponible en este servidor"}), 501
         return jsonify({"ok": True, "path": ruta})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -381,9 +388,17 @@ tags: [futboltai, partidos]
 """
     try:
         ruta = _obsidian_write("Partidos", f"{fecha} Partidos.md", contenido)
+        if ruta is None:
+            return jsonify({"ok": False, "error": "Obsidian no disponible en este servidor", "total": total}), 501
         return jsonify({"ok": True, "path": ruta, "total": total})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route('/health')
+def health():
+    """Healthcheck para Render / monitoreo."""
+    return jsonify({"ok": True, "service": "futbol-predictor"})
 
 # ══════════ PARTIDOS / POSICIONES (ESPN) ══════════
 
