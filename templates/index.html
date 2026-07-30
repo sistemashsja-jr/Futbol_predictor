@@ -110,6 +110,16 @@
         .nav-links a:hover { color: var(--text); background: var(--card); }
         .nav-links a.active { color: var(--green); background: rgba(0,232,122,0.08); }
 
+        .auth-slot { display: flex; align-items: center; margin-left: 6px; }
+        .auth-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; text-decoration: none; cursor: pointer; }
+        .auth-btn-google { background: #fff; color: #3c4043; }
+        .auth-btn-google:hover { background: #f1f3f4; }
+        .auth-user { display: flex; align-items: center; gap: 8px; }
+        .auth-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+        .auth-name { font-size: 13px; color: var(--text2); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .auth-btn-out { padding: 6px 10px; background: var(--card); border: 1px solid var(--card-border); color: var(--text2); }
+        .auth-btn-out:hover { border-color: var(--green); color: var(--green); }
+
         .nav-cta {
             background: linear-gradient(135deg, var(--green), #00b85e) !important;
             color: #003322 !important;
@@ -836,10 +846,11 @@
         <a href="/" class="active">Inicio</a>
         <a href="/partidos"><svg class="ico" aria-hidden="true"><use href="#ico-calendario"/></svg> Partidos</a>
         <a href="/stats">Estadísticas</a>
-        <a href="/predictor">Predictor</a>
+        <a href="/predictor">Pronósticos</a>
         <a href="/combinadas"><svg class="ico" aria-hidden="true"><use href="#ico-boleto"/></svg> Cuotas Combinadas</a>
         <a href="/worldcup" class="nav-wc"><svg class="ico" aria-hidden="true"><use href="#ico-trofeo"/></svg> Mundial 2026</a>
         <a href="/predictor" class="nav-cta"><svg class="ico" aria-hidden="true"><use href="#ico-prediccion"/></svg> Generar Predicción</a>
+        <div id="authSlot" class="auth-slot"></div>
     </div>
 </nav>
 
@@ -1410,5 +1421,6 @@ window.addEventListener('scroll', () => {
     requestAnimationFrame(pintarParallax);
 }, { passive: true });
 </script>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

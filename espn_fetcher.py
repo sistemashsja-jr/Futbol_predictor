@@ -211,7 +211,9 @@ class ESPNFetcher:
             return hit[1] if hit else None
 
     def get_leagues(self):
-        return [{"slug": k, **v} for k, v in LEAGUES.items()]
+        principales = [{"slug": k, **v, "extra": False} for k, v in LEAGUES.items()]
+        secundarias = [{"slug": k, **v, "extra": True} for k, v in SECONDARY_LEAGUES.items()]
+        return principales + secundarias
 
     # ── NOTICIAS ───────────────────────────────────────────
     def get_news(self, limit=6):
@@ -554,6 +556,81 @@ class ESPNFetcher:
         return {"slug": slug, "league": info["name"], "country": info["country"],
                 "flag": info["flag"], "extra": slug in SECONDARY_LEAGUES,
                 "matches": matches}
+
+    # Estadísticas del boxscore que sí trae ESPN para partidos en vivo,
+    # con su etiqueta en español y sufijo de visualización.
+    _STATS_VIVO = [
+        ("possessionPct", "Posesión", "%"),
+        ("totalShots", "Remates", ""),
+        ("shotsOnTarget", "A puerta", ""),
+        ("wonCorners", "Córners", ""),
+        ("foulsCommitted", "Faltas", ""),
+        ("yellowCards", "Amarillas", ""),
+        ("redCards", "Rojas", ""),
+        ("saves", "Atajadas", ""),
+    ]
+
+    def get_match_live(self, slug, event_id):
+        """Estado en vivo real de un partido: último evento del play-by-play
+        de ESPN (con su posición real en la cancha, si ESPN la trae para
+        ese tipo de evento) + estadísticas reales del boxscore.
+
+        Nada aquí se inventa: si ESPN no trae coordenadas para el último
+        evento, o no trae boxscore para esa liga/partido, esos campos
+        simplemente vienen en None/[] — el llamador decide cómo mostrarlo.
+        """
+        url = f"{BASE}/site/v2/sports/soccer/{slug}/summary?event={event_id}"
+        data = self._get(url, ttl=15)
+        if not data:
+            return None
+
+        header = data.get("header", {})
+        comp = (header.get("competitions") or [{}])[0]
+        status = comp.get("status", {}).get("type", {})
+        home_t, away_t = {}, {}
+        for c in comp.get("competitors", []):
+            side = {"name": c.get("team", {}).get("displayName", "?"), "score": c.get("score", "")}
+            if c.get("homeAway") == "home":
+                home_t = side
+            else:
+                away_t = side
+
+        # ── último evento con datos de la jugada (ESPN los da en orden
+        # cronológico ascendente, así que el más reciente es el último) ──
+        ultimo = None
+        for item in reversed(data.get("commentary", [])):
+            play = item.get("play")
+            if not play:
+                continue
+            ultimo = {
+                "minuto": (play.get("clock") or {}).get("displayValue", ""),
+                "texto": play.get("shortText") or play.get("text") or item.get("text", ""),
+                "equipo": (play.get("team") or {}).get("displayName", ""),
+                "tipo": (play.get("type") or {}).get("text", ""),
+                "x": item.get("fieldPositionX"), "y": item.get("fieldPositionY"),
+                "x2": item.get("fieldPosition2X"), "y2": item.get("fieldPosition2Y"),
+            }
+            break
+
+        # ── estadísticas reales del boxscore, si el partido las trae ──
+        stats = []
+        equipos_box = (data.get("boxscore") or {}).get("teams") or []
+        by_name = {t.get("team", {}).get("displayName"): t for t in equipos_box}
+        h_box, a_box = by_name.get(home_t.get("name")), by_name.get(away_t.get("name"))
+        if h_box and a_box:
+            h_vals = {s.get("name"): s.get("displayValue") for s in h_box.get("statistics", [])}
+            a_vals = {s.get("name"): s.get("displayValue") for s in a_box.get("statistics", [])}
+            for key, label, suffix in self._STATS_VIVO:
+                if key in h_vals and key in a_vals:
+                    stats.append({"label": label, "home": h_vals[key], "away": a_vals[key], "suffix": suffix})
+
+        return {
+            "estado": status.get("state", ""),
+            "minuto_actual": status.get("shortDetail", ""),
+            "home": home_t, "away": away_t,
+            "ultimo_evento": ultimo,
+            "stats": stats,
+        }
 
     # ── ÚLTIMOS PARTIDOS + ESTADÍSTICAS ───────────────────
     def get_team_analysis(self, slug, team_id, limit=8):

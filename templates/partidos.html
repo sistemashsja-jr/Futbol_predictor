@@ -38,6 +38,15 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; padding:0 40px; heigh
 .nav-links a { color:var(--text2); text-decoration:none; font-size:14px; font-weight:500; padding:8px 16px; border-radius:10px; transition: var(--tr-ui); }
 .nav-links a:hover { color:var(--text); background:var(--card); }
 .nav-links a.active { color:var(--green); background:rgba(0,232,122,0.08); }
+.auth-slot { display:flex; align-items:center; margin-left:6px; }
+.auth-btn { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:10px; font-weight:600; font-size:13px; text-decoration:none; cursor:pointer; }
+.auth-btn-google { background:#fff; color:#3c4043; }
+.auth-btn-google:hover { background:#f1f3f4; }
+.auth-user { display:flex; align-items:center; gap:8px; }
+.auth-avatar { width:26px; height:26px; border-radius:50%; object-fit:cover; }
+.auth-name { font-size:13px; color:var(--text2); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.auth-btn-out { padding:6px 10px; background:var(--card); border:1px solid var(--card-border); color:var(--text2); }
+.auth-btn-out:hover { border-color:var(--green); color:var(--green); }
 .nav-cta { background:linear-gradient(135deg, var(--green), #00b85e) !important; color:#003322 !important; font-weight:700 !important; }
 
 .wrap { max-width:860px; margin:0 auto; padding:100px 16px 60px; }
@@ -48,6 +57,8 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; padding:0 40px; heigh
 .tabs { display:flex; gap:8px; margin-bottom:18px; }
 .tab { flex:0 0 auto; padding:10px 22px; border-radius:12px; background:var(--card); border:1px solid var(--card-border); color:var(--text2); font-weight:600; font-size:14px; cursor:pointer; transition: var(--tr-ui); }
 .tab.active { color:#003322; background:linear-gradient(135deg, var(--green), #00b85e); border-color:transparent; }
+.tab .livedot { display:inline-block; width:7px; height:7px; background:var(--red); border-radius:50%; margin-right:7px; vertical-align:1px; animation:pulse 1.2s infinite; }
+.tab.active .livedot { background:#003322; }
 
 /* DATE STRIP */
 .datebar { display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--card-border); border-radius:14px; padding:8px; margin-bottom:18px; }
@@ -162,6 +173,25 @@ table.stable { width:100%; border-collapse:collapse; font-size:13.5px; min-width
 .barc { height:6px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; }
 .barc .fill { height:100%; border-radius:4px; background:var(--green); }
 .barc.rev { transform:scaleX(-1); }
+.live-head { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px; font-size:15px; }
+.live-head img { width:26px; height:26px; object-fit:contain; }
+.live-vs { color:var(--text3); font-size:12px; }
+.live-tabs { display:flex; gap:8px; margin-bottom:16px; }
+.live-tab { flex:1; padding:9px; border-radius:10px; background:var(--card); border:1px solid var(--card-border); color:var(--text2); font-weight:600; font-size:13px; cursor:pointer; transition:var(--tr-ui); }
+.live-tab.active { color:#003322; background:linear-gradient(135deg, var(--green), #00b85e); border-color:transparent; }
+.live-score { text-align:center; font-size:22px; font-weight:800; margin-bottom:12px; }
+.live-score small { display:block; font-size:11px; color:var(--red); font-weight:700; margin-top:2px; }
+.cancha-wrap { display:flex; gap:16px; align-items:center; margin:6px 0 14px; }
+.cancha-info { flex:0 0 130px; border-right:1px solid var(--card-border); padding-right:14px; }
+.cancha-tipo { font-weight:800; font-size:14.5px; }
+.cancha-equipo { color:var(--text2); font-size:12.5px; margin-top:3px; }
+.cancha-min { color:var(--text3); font-size:11px; margin-top:8px; }
+.cancha-svg { flex:1; width:100%; aspect-ratio:100/64; background:linear-gradient(180deg,#0f3d24,#0c2e1c); border-radius:10px; }
+.pitch-rect, .pitch-line { fill:none; stroke:rgba(255,255,255,0.32); stroke-width:0.5; vector-effect:non-scaling-stroke; }
+.ev-dot { fill:var(--green); }
+.ev-line { stroke:var(--green); stroke-width:1; opacity:0.9; }
+.cancha-texto { color:var(--text2); font-size:12.5px; text-align:center; }
+.cancha-texto small { color:var(--text3); }
 .mrec h4 { font-size:13px; color:var(--text2); margin:14px 0 8px; text-transform:uppercase; letter-spacing:.5px; }
 .mrec .rrow { display:flex; align-items:center; gap:8px; font-size:12.5px; padding:6px 4px; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--text2); }
 .mrec .rrow .d { color:var(--text3); width:78px; flex-shrink:0; }
@@ -214,10 +244,11 @@ table.stable { width:100%; border-collapse:collapse; font-size:13.5px; min-width
         <a href="/">Inicio</a>
         <a href="/partidos" class="active">Partidos</a>
         <a href="/stats">Estadísticas</a>
-        <a href="/predictor">Predictor</a>
+        <a href="/predictor">Pronósticos</a>
         <a href="/combinadas"><svg class="ico" aria-hidden="true"><use href="#ico-boleto"/></svg> Cuotas Combinadas</a>
         <a href="/worldcup"><svg class="ico" aria-hidden="true"><use href="#ico-trofeo"/></svg> Mundial 2026</a>
         <a href="/predictor" class="nav-cta"><svg class="ico" aria-hidden="true"><use href="#ico-prediccion"/></svg> Generar Predicción</a>
+        <div id="authSlot" class="auth-slot"></div>
     </div>
 </nav>
 
@@ -227,6 +258,7 @@ table.stable { width:100%; border-collapse:collapse; font-size:13.5px; min-width
 
     <div class="tabs">
         <button class="tab active" id="tabMatches" onclick="showTab('matches')"><svg class="ico" aria-hidden="true"><use href="#ico-calendario"/></svg> Partidos</button>
+        <button class="tab" id="tabLive" onclick="showTab('live')"><span class="livedot"></span>En vivo</button>
         <button class="tab" id="tabStandings" onclick="showTab('standings')">🏆 Posiciones</button>
         <button class="tab" id="tabNews" onclick="showTab('news')"><svg class="ico" aria-hidden="true"><use href="#ico-noticia"/></svg> Últimas Noticias</button>
     </div>
@@ -242,6 +274,11 @@ table.stable { width:100%; border-collapse:collapse; font-size:13.5px; min-width
             <button class="btn-hoy btn-obs" onclick="saveDailyNote(this)" title="Guardar la lista de partidos del día como nota en Obsidian">📝</button>
         </div>
         <div id="matchesArea"><div class="loader"><div class="spinner"></div><div>Cargando partidos…</div></div></div>
+    </div>
+
+    <!-- ═══ VISTA EN VIVO ═══ -->
+    <div id="viewLive" style="display:none;">
+        <div id="liveArea"><div class="loader"><div class="spinner"></div><div>Buscando partidos en vivo…</div></div></div>
     </div>
 
     <!-- ═══ VISTA POSICIONES ═══ -->
@@ -301,16 +338,87 @@ function goToday(){ centerDate = new Date(); selDate = todayStr(); renderDaychip
 function pickDate(v){ if(!v) return; selDate = v; centerDate = new Date(v+'T12:00:00'); renderDaychips(); loadMatches(); }
 
 let newsCargadas = false;
+let liveCargado = false;
+let liveTimer = null;
 
 function showTab(t){
     document.getElementById('tabMatches').classList.toggle('active', t==='matches');
+    document.getElementById('tabLive').classList.toggle('active', t==='live');
     document.getElementById('tabStandings').classList.toggle('active', t==='standings');
     document.getElementById('tabNews').classList.toggle('active', t==='news');
     document.getElementById('viewMatches').style.display = t==='matches'?'':'none';
+    document.getElementById('viewLive').style.display = t==='live'?'':'none';
     document.getElementById('viewStandings').style.display = t==='standings'?'':'none';
     document.getElementById('viewNews').style.display = t==='news'?'':'none';
     if(t==='standings' && !curLeague && leagues.length) selectLeague(leagues[0].slug);
     if(t==='news' && !newsCargadas){ newsCargadas = true; loadNews(); }
+    if(t==='live' && !liveCargado){ liveCargado = true; loadLive(); }
+}
+
+// ── EN VIVO: todos los partidos con state 'in' ahora mismo ──
+async function loadLive(silent){
+    const area = document.getElementById('liveArea');
+    if(!silent) area.innerHTML = '<div class="loader"><div class="spinner"></div><div>Buscando partidos en vivo…</div></div>';
+    try{
+        const hoy = todayStr();
+        const fechas = [hoy];
+        const off = new Date().getTimezoneOffset();
+        if(off > 0) fechas.push(addDays(hoy, 1));
+        else if(off < 0) fechas.unshift(addDays(hoy, -1));
+
+        const resps = await Promise.all(fechas.map(d =>
+            fetch('/api/espn/matches?date='+d).then(r=>r.json())));
+
+        const bySlug = new Map();
+        for(const blocks of resps){
+            for(const b of blocks){
+                if(bySlug.has(b.slug)){
+                    const t = bySlug.get(b.slug);
+                    const ids = new Set(t.matches.map(m=>m.id));
+                    for(const m of b.matches) if(!ids.has(m.id)) t.matches.push(m);
+                }else{
+                    bySlug.set(b.slug, {...b, matches:[...b.matches]});
+                }
+            }
+        }
+
+        const liveBlocks = [];
+        for(const b of bySlug.values()){
+            const vivos = b.matches.filter(m => m.state === 'in');
+            if(vivos.length){
+                vivos.sort((a,c)=>a.date.localeCompare(c.date));
+                liveBlocks.push({...b, matches: vivos});
+            }
+        }
+        liveBlocks.sort((a,c)=> c.matches.length - a.matches.length);
+        renderLive(liveBlocks);
+    }catch(e){
+        area.innerHTML = '<div class="empty"><div class="big">⚠️</div>Error cargando partidos en vivo. Reintenta.</div>';
+    }
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(()=>loadLive(true), 30000);
+}
+
+function renderLive(blocks){
+    const area = document.getElementById('liveArea');
+    if(!blocks || !blocks.length){
+        area.innerHTML = '<div class="empty"><div class="big">📴</div>No hay partidos en vivo en este momento.</div>';
+        return;
+    }
+    const total = blocks.reduce((s,b)=>s+b.matches.length,0);
+    let html = `<div class="page-sub" style="margin:-6px 0 14px;"><span class="livedot" style="display:inline-block;"></span>${total} partido${total===1?'':'s'} en vivo ahora</div>`;
+    for(const b of blocks){
+        html += `<div class="league-block">
+            <div class="league-head" onclick="this.parentElement.classList.toggle('closed')">
+                <span class="flag">${flagHtml(b.flag)}</span>
+                <div><div class="lname">${esc(b.league)}</div><div class="lcountry">${esc(b.country)}</div></div>
+                <span class="lcount">${b.matches.length}</span>
+                <span class="chev">▼</span>
+            </div>`;
+        for(const m of b.matches) html += matchRowHtml(b, m);
+        html += '</div>';
+    }
+    area.innerHTML = html;
 }
 
 // ── Últimas noticias: reales de ESPN, cada tarjeta enlaza al artículo
@@ -421,8 +529,10 @@ function matchRowHtml(b, m){
     const center = (live||post)
         ? `<div class="m-score${live?' live':''}">${m.home.score??0} - ${m.away.score??0}</div>`
         : `<div class="m-score m-vs">vs</div>`;
-    const clickable = m.home.id && m.away.id;
-    const onclick = clickable ? ` onclick="openAnalysis('${b.slug}','${m.home.id}','${m.away.id}','${esc(m.home.name)}','${esc(m.away.name)}','${m.home.logo}','${m.away.logo}')"` : ' style="cursor:default;"';
+    const clickable = live ? !!m.id : (m.home.id && m.away.id);
+    const onclick = !clickable ? ' style="cursor:default;"'
+        : live ? ` onclick="openLive('${b.slug}','${m.id}','${esc(m.home.name)}','${esc(m.away.name)}','${m.home.logo}','${m.away.logo}')"`
+        : ` onclick="openAnalysis('${b.slug}','${m.home.id}','${m.away.id}','${esc(m.home.name)}','${esc(m.away.name)}','${m.home.logo}','${m.away.logo}')"`;
     return `<div class="match-row"${onclick}>
         ${status}
         <div class="m-team right ${m.home.winner?'winner':''}"><span>${esc(m.home.name)}</span><img src="${m.home.logo}" onerror="this.style.visibility='hidden'"></div>
@@ -581,6 +691,104 @@ async function openAnalysis(slug, homeId, awayId, homeName, awayName, homeLogo, 
     }
 }
 
+// ── VISTA EN VIVO: último evento real (ESPN) + estadísticas reales ──
+let curLive = null;
+let liveRefreshTimer = null;
+
+async function openLive(slug, eventId, homeName, awayName, homeLogo, awayLogo){
+    curLive = {slug, eventId};
+    const bg = document.getElementById('modalBg');
+    const box = document.getElementById('modalContent');
+    bg.classList.add('open');
+    document.body.style.overflow='hidden';
+    box.innerHTML = `
+        <div class="live-head">
+            <img src="${homeLogo}" onerror="this.style.visibility='hidden'"><b>${esc(homeName)}</b>
+            <span class="live-vs">vs</span>
+            <b>${esc(awayName)}</b><img src="${awayLogo}" onerror="this.style.visibility='hidden'">
+        </div>
+        <div class="live-tabs">
+            <button class="live-tab active" id="liveTabCancha" onclick="switchLiveTab('cancha')">🎯 Cancha</button>
+            <button class="live-tab" id="liveTabStats" onclick="switchLiveTab('stats')">📊 Estadísticas</button>
+        </div>
+        <div id="liveCanchaBox"><div class="loader"><div class="spinner"></div><div>Cargando partido en vivo…</div></div></div>
+        <div id="liveStatsBox" style="display:none"></div>`;
+    await loadLiveData();
+    clearInterval(liveRefreshTimer);
+    liveRefreshTimer = setInterval(loadLiveData, 20000);
+}
+
+function switchLiveTab(t){
+    document.getElementById('liveTabCancha').classList.toggle('active', t==='cancha');
+    document.getElementById('liveTabStats').classList.toggle('active', t==='stats');
+    document.getElementById('liveCanchaBox').style.display = t==='cancha' ? '' : 'none';
+    document.getElementById('liveStatsBox').style.display = t==='stats' ? '' : 'none';
+}
+
+async function loadLiveData(){
+    if(!curLive) return;
+    const {slug, eventId} = curLive;
+    try{
+        const r = await fetch(`/api/espn/match_live?league=${slug}&event=${eventId}`);
+        const d = await r.json();
+        if(d.error) throw new Error(d.error);
+        if(!curLive) return; // el modal se cerró mientras cargaba
+        document.getElementById('liveCanchaBox').innerHTML = renderCancha(d);
+        document.getElementById('liveStatsBox').innerHTML = renderStatsVivo(d);
+    }catch(e){
+        if(!curLive) return;
+        document.getElementById('liveCanchaBox').innerHTML = '<div class="empty"><div class="big">⚠️</div>No se pudo cargar el partido en vivo.</div>';
+    }
+}
+
+// Todo lo que se dibuja sale de ev.x/y/x2/y2, que ESPN da tal cual para
+// ESE evento puntual — no se infiere ni se inventa dirección de ataque.
+function renderCancha(d){
+    const marcador = `<div class="live-score">${d.home?.score ?? 0} - ${d.away?.score ?? 0}<small>${esc(d.minuto_actual||'')}</small></div>`;
+    const ev = d.ultimo_evento;
+    if(!ev){
+        return marcador + '<div class="empty" style="padding:26px 0"><div class="big">⏳</div>Sin eventos con datos suficientes por ahora.</div>';
+    }
+    const hasPos = ev.x!=null && ev.y!=null;
+    let marker = '';
+    if(hasPos){
+        const x1 = ev.x, y1 = (ev.y*0.64).toFixed(1);
+        marker = `<circle cx="${x1}" cy="${y1}" r="1.8" class="ev-dot"/>`;
+        if(ev.x2!=null && ev.y2!=null){
+            const x2 = ev.x2, y2 = (ev.y2*0.64).toFixed(1);
+            marker += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="ev-line" marker-end="url(#evArrow)"/>`;
+        }
+    }
+    return `${marcador}
+    <div class="cancha-wrap">
+        <div class="cancha-info">
+            <div class="cancha-tipo">${esc(ev.tipo || 'Evento')}</div>
+            <div class="cancha-equipo">${esc(ev.equipo)}</div>
+            <div class="cancha-min">${esc(ev.minuto)}</div>
+        </div>
+        <svg viewBox="0 0 100 64" class="cancha-svg" preserveAspectRatio="xMidYMid meet">
+            <defs><marker id="evArrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--green)"/></marker></defs>
+            <rect x="1" y="1" width="98" height="62" class="pitch-rect"/>
+            <line x1="50" y1="1" x2="50" y2="63" class="pitch-line"/>
+            <circle cx="50" cy="32" r="8" class="pitch-line"/>
+            <rect x="1" y="19" width="14" height="26" class="pitch-line"/>
+            <rect x="85" y="19" width="14" height="26" class="pitch-line"/>
+            ${hasPos ? marker : ''}
+        </svg>
+    </div>
+    ${!hasPos ? `<div class="cancha-texto">${esc(ev.texto||'')} <small>(sin coordenadas para este tipo de evento)</small></div>` : `<div class="cancha-texto">${esc(ev.texto||'')}</div>`}`;
+}
+
+function renderStatsVivo(d){
+    if(!d.stats || !d.stats.length){
+        return '<div class="empty" style="padding:26px 0"><div class="big">📊</div>Sin estadísticas disponibles para este partido todavía.</div>';
+    }
+    return d.stats.map(s => {
+        const max = Math.max(parseFloat(s.home)||0, parseFloat(s.away)||0, 1);
+        return statBar(s.label, s.home, s.away, max, s.suffix);
+    }).join('');
+}
+
 // ── Integración con Obsidian ──────────────────────────
 let lastPred = null;
 
@@ -686,7 +894,11 @@ async function predictFromModal(){
         if(btn){ btn.disabled = false; btn.textContent = '🔮 Generar Predicción con IA'; }
     }
 }
-function closeModal(){ document.getElementById('modalBg').classList.remove('open'); document.body.style.overflow=''; }
+function closeModal(){
+    document.getElementById('modalBg').classList.remove('open');
+    document.body.style.overflow='';
+    clearInterval(liveRefreshTimer); liveRefreshTimer = null; curLive = null;
+}
 
 function formHtml(form){
     return '<div class="formrow">'+ (form||[]).slice(0,5).map(f=>`<span class="fb ${f}">${f}</span>`).join('') +'</div>';
@@ -742,5 +954,6 @@ loadMatches();
 loadLeagues();
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 </script>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

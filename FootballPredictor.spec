@@ -5,7 +5,7 @@ a = Analysis(
     ['launcher.py'],
     pathex=[],
     binaries=[],
-    datas=[('templates', 'templates'), ('static', 'static')],
+    datas=[('templates', 'templates'), ('static', 'static'), ('TABLAS DE POSICIONES.xlsx', '.')],
     hiddenimports=['groq', 'mistralai'],
     hookspath=[],
     hooksconfig={},

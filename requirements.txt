@@ -12,3 +12,6 @@ scipy
 scikit-learn
 soccerdata
 lxml
+openpyxl
+authlib
+Pillow

@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -394,8 +395,8 @@ class FootballDataFetcher:
             "GRE": "Grecia"
         }
         
-        excel_path = r"c:\Users\JEFE ENFERMERIA\Downloads\TABLAS DE POSICIONES.xlsx"
-        import os
+        base_dir = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+        excel_path = os.path.join(base_dir, "TABLAS DE POSICIONES.xlsx")
         import openpyxl
         
         if os.path.exists(excel_path) and league in sheet_mapping:

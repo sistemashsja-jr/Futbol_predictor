@@ -61,6 +61,15 @@
         .nav-link { color:var(--text2); text-decoration:none; font-size:14px; font-weight:500; padding:7px 14px; border-radius:9px; transition: var(--tr-ui); }
         .nav-link:hover { color:var(--text); background:var(--card); }
         .nav-link.active { color:var(--green); background:var(--green-dim); }
+        .auth-slot { display:flex; align-items:center; margin-left:6px; }
+        .auth-btn { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:10px; font-weight:600; font-size:13px; text-decoration:none; cursor:pointer; }
+        .auth-btn-google { background:#fff; color:#3c4043; }
+        .auth-btn-google:hover { background:#f1f3f4; }
+        .auth-user { display:flex; align-items:center; gap:8px; }
+        .auth-avatar { width:26px; height:26px; border-radius:50%; object-fit:cover; }
+        .auth-name { font-size:13px; color:var(--text2); max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .auth-btn-out { padding:6px 10px; background:var(--card); border:1px solid var(--card-b); color:var(--text2); }
+        .auth-btn-out:hover { border-color:var(--green); color:var(--green); }
         .nav-wc { background:linear-gradient(135deg,#b8860b,var(--gold)) !important; color:#1a0a00 !important; font-weight:700 !important; }
 
         /* LAYOUT */
@@ -404,9 +413,10 @@
         <a href="/" class="nav-link">Inicio</a>
         <a href="/partidos" class="nav-link"><svg class="ico" aria-hidden="true"><use href="#ico-calendario"/></svg> Partidos</a>
         <a href="/stats" class="nav-link active">Estadísticas</a>
-        <a href="/predictor" class="nav-link">Predictor</a>
+        <a href="/predictor" class="nav-link">Pronósticos</a>
         <a href="/combinadas" class="nav-link"><svg class="ico" aria-hidden="true"><use href="#ico-boleto"/></svg> Cuotas Combinadas</a>
         <a href="/worldcup" class="nav-link nav-wc"><svg class="ico" aria-hidden="true"><use href="#ico-trofeo"/></svg> Mundial 2026</a>
+        <div id="authSlot" class="auth-slot"></div>
     </div>
 </nav>
 
@@ -899,5 +909,6 @@ function renderWCFixtures(data) {
 // Initial load
 window.onload = () => loadData('PD');
 </script>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

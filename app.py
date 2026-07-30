@@ -1,8 +1,10 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from data_fetcher import FootballDataFetcher
 from ai_predictor import AIPredictor
 from stats_engine import StatsEngine
 from espn_fetcher import ESPNFetcher
+import auth
+from authlib.integrations.flask_client import OAuth
 import os
 from dotenv import load_dotenv
 
@@ -17,9 +19,72 @@ if getattr(sys, 'frozen', False):
     app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
 else:
     app = Flask(__name__)
+
+# Necesaria para firmar la cookie de sesión (quién quedó logueado). En
+# producción real hay que fijar FLASK_SECRET_KEY en el .env; sin ella,
+# cada reinicio del server invalida las sesiones existentes.
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or os.urandom(32)
+
 fetcher = FootballDataFetcher()
 predictor = AIPredictor()
 espn = ESPNFetcher()
+
+# ── Login con Google (OAuth 2.0 / OpenID Connect) ──────────────────────
+oauth = OAuth(app)
+oauth.register(
+    name='google',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'},
+)
+
+
+def _google_configurado():
+    cid = os.getenv('GOOGLE_CLIENT_ID') or ''
+    csec = os.getenv('GOOGLE_CLIENT_SECRET') or ''
+    return bool(cid) and bool(csec) and 'your_google' not in cid
+
+
+@app.route('/login/google')
+def login_google():
+    if not _google_configurado():
+        return ("Falta configurar GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET en el .env "
+                "(ver .env.example para instrucciones)."), 500
+    redirect_uri = url_for('auth_google_callback', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/google/callback')
+def auth_google_callback():
+    token = oauth.google.authorize_access_token()
+    perfil = token.get('userinfo') or {}
+    if not perfil.get('sub'):
+        return "No se pudo confirmar la cuenta de Google.", 400
+    user = auth.get_or_create_user(
+        google_sub=perfil['sub'], email=perfil.get('email'),
+        name=perfil.get('name'), picture=perfil.get('picture'),
+    )
+    session['user_id'] = user['id']
+    return redirect(url_for('index'))
+
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return redirect(request.referrer or url_for('index'))
+
+
+@app.route('/api/me')
+def api_me():
+    uid = session.get('user_id')
+    if not uid:
+        return jsonify(None)
+    user = auth.get_user(uid)
+    if not user:
+        session.pop('user_id', None)
+        return jsonify(None)
+    return jsonify({'name': user['name'], 'email': user['email'], 'picture': user['picture']})
 
 @app.route('/')
 def index():
@@ -336,6 +401,19 @@ def espn_matches():
 def espn_standings():
     league = request.args.get('league', 'esp.1')
     return jsonify(espn.get_standings(league))
+
+@app.route('/api/espn/match_live')
+def espn_match_live():
+    """Último evento real + estadísticas reales del boxscore para un
+    partido en vivo (vista 'Cancha' de Partidos)."""
+    slug = request.args.get('league')
+    event_id = request.args.get('event')
+    if not slug or not event_id:
+        return jsonify({'error': 'faltan parámetros league/event'}), 400
+    data = espn.get_match_live(slug, event_id)
+    if not data:
+        return jsonify({'error': 'sin datos para este partido'}), 404
+    return jsonify(data)
 
 @app.route('/api/espn/analysis')
 def espn_analysis():

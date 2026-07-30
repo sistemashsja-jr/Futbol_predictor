@@ -81,6 +81,15 @@
                         background-color 160ms cubic-bezier(0.25,1,0.5,1);
         }
         .nav-links a:hover { color: var(--cal); background: rgba(237,242,234,0.06); }
+        .auth-slot { display: flex; align-items: center; margin-left: 6px; }
+        .auth-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-weight: 500; font-size: 13px; text-decoration: none; cursor: pointer; }
+        .auth-btn-google { background: var(--cal); color: #202124; }
+        .auth-btn-google:hover { background: #d8ded9; }
+        .auth-user { display: flex; align-items: center; gap: 8px; }
+        .auth-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+        .auth-name { font-size: 13px; color: var(--cal-dim); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .auth-btn-out { padding: 6px 10px; border: 1px solid var(--linea); color: var(--cal-dim); }
+        .auth-btn-out:hover { color: var(--uno); border-color: var(--uno); }
 
         /* ── ESTRUCTURA ── */
         .envoltura {
@@ -522,9 +531,10 @@
     <div class="nav-links">
         <a href="/partidos">Partidos</a>
         <a href="/stats">Estadísticas</a>
-        <a href="/predictor">Predictor</a>
+        <a href="/predictor">Pronósticos</a>
         <a href="/combinadas">Cuotas Combinadas</a>
         <a href="/worldcup">Mundial 2026</a>
+        <div id="authSlot" class="auth-slot"></div>
     </div>
 </nav>
 
@@ -788,6 +798,7 @@ async function cargar() {
 
 cargar();
 </script>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 
 </body>
 </html>

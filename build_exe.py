@@ -26,6 +26,8 @@ def build():
         "--hidden-import=groq",
         "--hidden-import=mistralai",
         "--add-data=templates;templates",
+        "--add-data=static;static",
+        "--add-data=TABLAS DE POSICIONES.xlsx;.",
         "launcher.py"
     ]
     
