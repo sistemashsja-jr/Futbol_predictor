@@ -159,6 +159,36 @@
             font-size:12px; line-height:1.6; color:var(--text3);
             text-align:center; max-width:560px; margin:32px auto 0;
         }
+
+        .filtros {
+            display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+            margin:0 auto 28px; max-width:640px;
+        }
+        .filtro-btn {
+            border:1px solid var(--card-b); background:var(--card); color:var(--text2);
+            padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600;
+            cursor:pointer; font-family:inherit; transition: var(--tr-ui);
+        }
+        .filtro-btn:hover { color:var(--text); border-color:rgba(255,255,255,0.2); }
+        .filtro-btn.active {
+            color:var(--green); background:var(--green-dim);
+            border-color:rgba(0,232,122,0.35);
+        }
+
+        .dia-sep {
+            display:flex; align-items:center; gap:12px;
+            margin:8px 0 16px; color:var(--text3); font-size:12px;
+            font-weight:700; letter-spacing:0.4px; text-transform:uppercase;
+        }
+        .dia-sep::after {
+            content:""; flex:1; height:1px; background:var(--card-b);
+        }
+
+        .resumen {
+            text-align:center; color:var(--text2); font-size:13px;
+            margin-bottom:20px;
+        }
+        .resumen strong { color:var(--green); }
     </style>
 </head>
 <body>
@@ -182,16 +212,25 @@
 
 <main class="page">
     <div class="page-header">
-        <div class="page-badge"><span class="dot"></span> Partidos de hoy</div>
+        <div class="page-badge"><span class="dot"></span> Próximos partidos</div>
         <h1 class="page-title">Cuotas <span class="g">Combinadas</span></h1>
         <p class="page-desc">
-            Boletas combinadas de los partidos de hoy. Cada cuota sale de la probabilidad
+            Boletas combinadas de los próximos encuentros. Cada cuota sale de la probabilidad
             conjunta real del marcador simulado (no de multiplicar cuotas sueltas),
             sin margen de casa.
         </p>
     </div>
 
+    <div class="filtros" role="group" aria-label="Rango de días">
+        <button type="button" class="filtro-btn" data-dias="1">Hoy</button>
+        <button type="button" class="filtro-btn active" data-dias="3">3 días</button>
+        <button type="button" class="filtro-btn" data-dias="5">5 días</button>
+        <button type="button" class="filtro-btn" data-dias="7">7 días</button>
+    </div>
+
+    <div id="resumen" class="resumen" hidden></div>
     <div id="lista">
+        <div class="esqueleto-bloque"></div>
         <div class="esqueleto-bloque"></div>
         <div class="esqueleto-bloque"></div>
     </div>
@@ -203,10 +242,31 @@
 </main>
 
 <script>
+let diasActivos = 3;
+
 function horaPartido(iso) {
     if (!iso) return '';
     const d = new Date(iso);
     return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
+function etiquetaFecha(isoOrDay) {
+    if (!isoOrDay) return 'Sin fecha';
+    const d = new Date(isoOrDay.includes('T') ? isoOrDay : isoOrDay + 'T12:00:00');
+    if (Number.isNaN(d.getTime())) return isoOrDay;
+    const hoy = new Date();
+    const manana = new Date();
+    manana.setDate(hoy.getDate() + 1);
+    const misma = (a, b) => a.toDateString() === b.toDateString();
+    if (misma(d, hoy)) return 'Hoy';
+    if (misma(d, manana)) return 'Mañana';
+    return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
+function claveDia(t) {
+    if (t.fecha) return t.fecha;
+    if (t.kickoff) return String(t.kickoff).slice(0, 10);
+    return 'sin-fecha';
 }
 
 function tarjetaBoleto(cb) {
@@ -224,8 +284,8 @@ function tarjetaBoleto(cb) {
             <span class="boleto-combi">${n} ${n === 1 ? 'selección' : 'selecciones'}</span>
             <ul class="boleto-patas">${patas}</ul>
             <div class="boleto-pie">
-                <span class="boleto-prob">${cb.probabilidad.toFixed(1)}% prob.</span>
-                <span class="boleto-cuota">${cb.cuota.toFixed(2)}</span>
+                <span class="boleto-prob">${Number(cb.probabilidad).toFixed(1)}% prob.</span>
+                <span class="boleto-cuota">${Number(cb.cuota).toFixed(2)}</span>
             </div>
         </article>`;
 }
@@ -237,6 +297,7 @@ function bloqueMatch(t) {
         ? ` href="/predictor?league=${encodeURIComponent(t.league_slug)}&home=${encodeURIComponent(t.home.id)}&away=${encodeURIComponent(t.away.id)}"`
         : '';
     const hora = horaPartido(t.kickoff);
+    const flag = t.flag ? `${t.flag} ` : '';
     return `
         <div class="match-bloque">
             <${tagAbre} class="match-bloque-header"${hrefAttr}>
@@ -247,45 +308,86 @@ function bloqueMatch(t) {
                 </div>
                 <div class="match-bloque-info">
                     <div class="match-bloque-equipos">${t.home.name} · ${t.away.name}</div>
-                    <div class="match-bloque-meta">${hora ? hora + ' · ' : ''}${t.liga}</div>
+                    <div class="match-bloque-meta">${hora ? hora + ' · ' : ''}${flag}${t.liga}</div>
                 </div>
                 ${puedeAbrirPredictor ? '<span class="match-bloque-flecha">›</span>' : ''}
             </${tagAbre}>
             <div class="combis-grid">
-                ${t.combinadas.map(tarjetaBoleto).join('')}
+                ${(t.combinadas || []).map(tarjetaBoleto).join('')}
             </div>
         </div>`;
 }
 
-async function cargar() {
+function renderLista(tarjetas) {
+    const porDia = {};
+    for (const t of tarjetas) {
+        const k = claveDia(t);
+        (porDia[k] ||= []).push(t);
+    }
+    return Object.keys(porDia).sort().map(k => {
+        const ref = porDia[k][0].kickoff || k;
+        return `<div class="dia-sep">${etiquetaFecha(ref)}</div>` +
+            porDia[k].map(bloqueMatch).join('');
+    }).join('');
+}
+
+async function cargar(dias = diasActivos) {
+    diasActivos = dias;
     const cont = document.getElementById('lista');
+    const resumen = document.getElementById('resumen');
+    cont.innerHTML = `
+        <div class="esqueleto-bloque"></div>
+        <div class="esqueleto-bloque"></div>
+        <div class="esqueleto-bloque"></div>`;
+    resumen.hidden = true;
+
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+        btn.classList.toggle('active', Number(btn.dataset.dias) === dias);
+    });
+
     try {
-        const d = await fetch('/api/combos?dias=1&limite=20').then(r => r.json());
+        const resp = await fetch(`/api/combos?dias=${dias}&limite=12`);
+        const raw = await resp.text();
+        let d;
+        try { d = JSON.parse(raw); }
+        catch (_) { throw new Error(`Respuesta no JSON (HTTP ${resp.status})`); }
+        if (!resp.ok) throw new Error(d.error || `HTTP ${resp.status}`);
+
         const tarjetas = d.tarjetas || [];
         if (!tarjetas.length) {
             cont.innerHTML = `
                 <div class="estado">
-                    <div class="titulo">Sin partidos hoy con datos suficientes</div>
-                    No hay encuentros programados hoy con historial suficiente para
-                    calcular combinadas honestas.
+                    <div class="titulo">Sin partidos con datos suficientes</div>
+                    En este rango no hay encuentros con historial bastante para
+                    calcular combinadas honestas (verano / parón de ligas).
+                    <br>
+                    Prueba otro rango de días o mira el calendario.
                     <br>
                     <a class="btn-suave" href="/partidos">Ver el calendario completo</a>
                 </div>`;
             return;
         }
-        cont.innerHTML = tarjetas.map(bloqueMatch).join('');
+
+        const nCombis = tarjetas.reduce((acc, t) => acc + (t.combinadas || []).length, 0);
+        resumen.hidden = false;
+        resumen.innerHTML = `<strong>${tarjetas.length}</strong> partidos · <strong>${nCombis}</strong> boletas · próximos ${dias} día${dias === 1 ? '' : 's'}`;
+        cont.innerHTML = renderLista(tarjetas);
     } catch (e) {
         cont.innerHTML = `
             <div class="estado">
                 <div class="titulo">No se pudieron cargar las cuotas</div>
-                El servicio de datos no responde. Vuelve a intentarlo en unos minutos.
+                ${e.message || 'El servicio de datos no responde.'}
                 <br><br>
                 <button class="btn-suave" style="cursor:pointer;border:1px solid var(--card-b);background:none;font-family:inherit;" onclick="cargar()">Reintentar</button>
             </div>`;
     }
 }
 
-cargar();
+document.querySelectorAll('.filtro-btn').forEach(btn => {
+    btn.addEventListener('click', () => cargar(Number(btn.dataset.dias)));
+});
+
+cargar(3);
 </script>
 <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
