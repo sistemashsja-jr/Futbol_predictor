@@ -62,7 +62,7 @@
         .nav-wc { background:linear-gradient(135deg,#b8860b,var(--gold)) !important; color:#1a0a00 !important; font-weight:700 !important; }
 
         /* PAGE */
-        .page { max-width:1100px; margin:0 auto; padding:40px 24px 80px; }
+        .page { max-width:1100px; margin:0 auto; padding:40px 24px 120px; }
 
         .page-header { text-align:center; margin-bottom:40px; }
         .page-badge {
@@ -115,9 +115,31 @@
             border-radius:16px;
             overflow:hidden;
             transition: var(--tr-ui);
+            cursor:pointer;
+            text-align:left;
+            width:100%;
+            font:inherit;
+            color:inherit;
+            display:block;
+            padding:0;
         }
         .boleto:hover { border-color:rgba(0,232,122,0.3); transform:translateY(-2px); }
         .boleto-top { border-color:rgba(0,232,122,0.45); box-shadow:0 0 0 1px rgba(0,232,122,0.12); }
+        .boleto.seleccionado {
+            border-color:rgba(0,232,122,0.7);
+            background:rgba(0,232,122,0.08);
+            box-shadow:0 0 0 1px rgba(0,232,122,0.25);
+        }
+        .boleto-check {
+            float:right; margin:12px 12px 0 0;
+            width:20px; height:20px; border-radius:6px;
+            border:2px solid rgba(255,255,255,0.25);
+            display:flex; align-items:center; justify-content:center;
+            font-size:12px; color:transparent; font-weight:900;
+        }
+        .boleto.seleccionado .boleto-check {
+            background:var(--green); border-color:var(--green); color:#0b1a12;
+        }
         .boleto-segura {
             display:inline-block; margin:8px 14px 0;
             font-size:10px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase;
@@ -129,7 +151,7 @@
             border:1px solid rgba(0,232,122,0.25); border-radius:20px;
             padding:2px 9px; display:inline-block; margin:14px 14px 0;
         }
-        .boleto-patas { list-style:none; padding:10px 14px 12px; display:flex; flex-direction:column; gap:9px; }
+        .boleto-patas { list-style:none; padding:10px 14px 12px; display:flex; flex-direction:column; gap:9px; clear:both; }
         .boleto-pata { display:flex; gap:9px; align-items:flex-start; }
         .boleto-punto { flex:0 0 auto; width:8px; height:8px; margin-top:4px; border-radius:50%; border:2px solid var(--green); }
         .boleto-mercado { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.3px; }
@@ -141,6 +163,30 @@
         }
         .boleto-prob { font-size:11px; color:var(--text2); }
         .boleto-cuota { font-family:monospace; font-size:20px; font-weight:900; color:var(--green); }
+
+        .barra-super {
+            position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
+            z-index:120; display:none; align-items:center; gap:14px; flex-wrap:wrap;
+            max-width:min(920px, calc(100% - 24px));
+            padding:12px 16px; border-radius:16px;
+            background:rgba(8,12,20,0.96); border:1px solid rgba(0,232,122,0.35);
+            box-shadow:0 12px 40px rgba(0,0,0,0.45); backdrop-filter:blur(16px);
+        }
+        .barra-super.visible { display:flex; }
+        .barra-info { color:var(--text2); font-size:13px; }
+        .barra-info strong { color:var(--green); }
+        .barra-cuota { font-family:monospace; font-size:22px; font-weight:900; color:var(--green); }
+        .barra-btn {
+            border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:13px;
+            padding:10px 16px; border-radius:10px; background:var(--green); color:#0b1a12;
+        }
+        .barra-btn:disabled { opacity:0.45; cursor:not-allowed; }
+        .barra-limpiar {
+            border:1px solid var(--card-b); background:transparent; color:var(--text2);
+            cursor:pointer; font-family:inherit; font-weight:600; font-size:13px;
+            padding:9px 12px; border-radius:10px;
+        }
+        .barra-limpiar:hover { color:var(--text); border-color:rgba(255,255,255,0.25); }
 
         /* ESTADOS */
         .estado { text-align:center; padding:60px 20px; color:var(--text2); }
@@ -221,9 +267,9 @@
         <div class="page-badge"><span class="dot"></span> Próximos partidos</div>
         <h1 class="page-title">Cuotas <span class="g">Combinadas</span></h1>
         <p class="page-desc">
-            Boletas combinadas de los próximos encuentros. Cada cuota sale de la probabilidad
-            conjunta real del marcador simulado (no de multiplicar cuotas sueltas),
-            sin margen de casa.
+            Boletas combinadas de los próximos encuentros. Selecciona varias boletas
+            de <strong>partidos distintos</strong> para abrir la <strong>super cuota</strong>
+            en una pestaña nueva.
         </p>
     </div>
 
@@ -247,8 +293,18 @@
     </p>
 </main>
 
+<div class="barra-super" id="barraSuper" aria-live="polite">
+    <div class="barra-info" id="barraInfo">0 seleccionadas</div>
+    <div class="barra-cuota" id="barraCuota">—</div>
+    <button type="button" class="barra-limpiar" id="btnLimpiar">Limpiar</button>
+    <button type="button" class="barra-btn" id="btnSuper" disabled>Abrir super cuota</button>
+</div>
+
 <script>
+const SUPER_KEY = 'futbolt_super_cuota';
 let diasActivos = 1;
+/** matchKey -> pick seleccionado */
+const seleccion = new Map();
 
 function horaPartido(iso) {
     if (!iso) return '';
@@ -275,8 +331,21 @@ function claveDia(t) {
     return 'sin-fecha';
 }
 
-function tarjetaBoleto(cb, idx) {
+function matchKeyDe(t) {
+    return `${t.league_slug || ''}|${t.home.id || t.home.name}|${t.away.id || t.away.name}|${t.kickoff || t.fecha || ''}`;
+}
+
+function escapeAttr(s) {
+    return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;');
+}
+
+function tarjetaBoleto(t, cb, idx) {
     const n = cb.selecciones.length;
+    const mkey = matchKeyDe(t);
+    const pickId = `${mkey}::${idx}`;
     const segura = idx === 0
         ? '<span class="boleto-segura">Más segura</span>'
         : '';
@@ -288,8 +357,23 @@ function tarjetaBoleto(cb, idx) {
                 <div class="boleto-seleccion">${s.seleccion}</div>
             </span>
         </li>`).join('');
+    const payload = {
+        matchKey: mkey,
+        pickId,
+        partido: `${t.home.name} · ${t.away.name}`,
+        liga: t.liga || '',
+        hora: horaPartido(t.kickoff),
+        cuota: Number(cb.cuota),
+        probabilidad: Number(cb.probabilidad),
+        selecciones: cb.selecciones || [],
+    };
     return `
-        <article class="boleto${idx === 0 ? ' boleto-top' : ''}">
+        <button type="button" class="boleto${idx === 0 ? ' boleto-top' : ''}"
+            data-pick-id="${escapeAttr(pickId)}"
+            data-match-key="${escapeAttr(mkey)}"
+            data-payload="${escapeAttr(JSON.stringify(payload))}"
+            aria-pressed="false">
+            <span class="boleto-check" aria-hidden="true">✓</span>
             <span class="boleto-combi">${n} ${n === 1 ? 'selección' : 'selecciones'}</span>
             ${segura}
             <ul class="boleto-patas">${patas}</ul>
@@ -297,7 +381,7 @@ function tarjetaBoleto(cb, idx) {
                 <span class="boleto-prob">${Number(cb.probabilidad).toFixed(1)}% prob.</span>
                 <span class="boleto-cuota">${Number(cb.cuota).toFixed(2)}</span>
             </div>
-        </article>`;
+        </button>`;
 }
 
 function bloqueMatch(t) {
@@ -323,7 +407,7 @@ function bloqueMatch(t) {
                 ${puedeAbrirPredictor ? '<span class="match-bloque-flecha">›</span>' : ''}
             </${tagAbre}>
             <div class="combis-grid">
-                ${(t.combinadas || []).map((cb, i) => tarjetaBoleto(cb, i)).join('')}
+                ${(t.combinadas || []).map((cb, i) => tarjetaBoleto(t, cb, i)).join('')}
             </div>
         </div>`;
 }
@@ -341,6 +425,65 @@ function renderLista(tarjetas) {
     }).join('');
 }
 
+function actualizarBarra() {
+    const barra = document.getElementById('barraSuper');
+    const info = document.getElementById('barraInfo');
+    const cuotaEl = document.getElementById('barraCuota');
+    const btn = document.getElementById('btnSuper');
+    const n = seleccion.size;
+    if (n === 0) {
+        barra.classList.remove('visible');
+        return;
+    }
+    barra.classList.add('visible');
+    const cuota = [...seleccion.values()].reduce((acc, p) => acc * Number(p.cuota || 1), 1);
+    info.innerHTML = `<strong>${n}</strong> partido${n === 1 ? '' : 's'} · super cuota`;
+    cuotaEl.textContent = cuota.toFixed(2);
+    btn.disabled = n < 2;
+    btn.textContent = n < 2 ? 'Selecciona otro partido' : 'Abrir super cuota';
+}
+
+function sincronizarUI() {
+    document.querySelectorAll('.boleto').forEach(btn => {
+        const mkey = btn.dataset.matchKey;
+        const pickId = btn.dataset.pickId;
+        const sel = seleccion.get(mkey);
+        const on = sel && sel.pickId === pickId;
+        btn.classList.toggle('seleccionado', !!on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    actualizarBarra();
+}
+
+function togglePick(btn) {
+    let payload;
+    try { payload = JSON.parse(btn.dataset.payload); }
+    catch (_) { return; }
+    const mkey = payload.matchKey;
+    const actual = seleccion.get(mkey);
+    if (actual && actual.pickId === payload.pickId) {
+        seleccion.delete(mkey);
+    } else {
+        seleccion.set(mkey, payload);
+    }
+    sincronizarUI();
+}
+
+function abrirSuperCuota() {
+    if (seleccion.size < 2) return;
+    const picks = [...seleccion.values()];
+    sessionStorage.setItem(SUPER_KEY, JSON.stringify({
+        createdAt: new Date().toISOString(),
+        picks,
+    }));
+    window.open('/combinadas/super', '_blank');
+}
+
+function limpiarSeleccion() {
+    seleccion.clear();
+    sincronizarUI();
+}
+
 async function cargar(dias = diasActivos) {
     diasActivos = dias;
     const cont = document.getElementById('lista');
@@ -350,6 +493,7 @@ async function cargar(dias = diasActivos) {
         <div class="esqueleto-bloque"></div>
         <div class="esqueleto-bloque"></div>`;
     resumen.hidden = true;
+    limpiarSeleccion();
 
     document.querySelectorAll('.filtro-btn').forEach(btn => {
         btn.classList.toggle('active', Number(btn.dataset.dias) === dias);
@@ -385,8 +529,11 @@ async function cargar(dias = diasActivos) {
 
         const nCombis = tarjetas.reduce((acc, t) => acc + (t.combinadas || []).length, 0);
         resumen.hidden = false;
-        resumen.innerHTML = `<strong>${tarjetas.length}</strong> partidos · <strong>${nCombis}</strong> boletas · próximos ${dias} día${dias === 1 ? '' : 's'}`;
+        resumen.innerHTML = `<strong>${tarjetas.length}</strong> partidos · <strong>${nCombis}</strong> boletas · toca una boleta para seleccionarla`;
         cont.innerHTML = renderLista(tarjetas);
+        cont.querySelectorAll('.boleto').forEach(btn => {
+            btn.addEventListener('click', () => togglePick(btn));
+        });
     } catch (e) {
         cont.innerHTML = `
             <div class="estado">
@@ -401,6 +548,8 @@ async function cargar(dias = diasActivos) {
 document.querySelectorAll('.filtro-btn').forEach(btn => {
     btn.addEventListener('click', () => cargar(Number(btn.dataset.dias)));
 });
+document.getElementById('btnSuper').addEventListener('click', abrirSuperCuota);
+document.getElementById('btnLimpiar').addEventListener('click', limpiarSeleccion);
 
 cargar(1);
 </script>

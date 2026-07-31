@@ -871,6 +871,12 @@ def combinadas_page():
     return render_template('combinadas.html')
 
 
+@app.route('/combinadas/super')
+def combinadas_super_page():
+    """Pestaña de super cuota: lee la selección desde sessionStorage en el cliente."""
+    return render_template('super_cuota.html')
+
+
 @app.route('/api/quiniela')
 def api_quiniela():
     """1-X-2 real de los próximos partidos. Registra cada pronóstico."""

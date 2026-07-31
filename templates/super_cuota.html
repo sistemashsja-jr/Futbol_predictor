@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutboltAI — Super cuota</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/futbolt.css') }}">
+    <style>
+        :root {
+            --bg: #060711;
+            --card: rgba(255, 255, 255, 0.035);
+            --card-b: rgba(255, 255, 255, 0.09);
+            --green: #00e87a;
+            --green-dim: rgba(0, 232, 122, 0.08);
+            --text: #f0f4ff;
+            --text2: #8892a4;
+            --text3: #7c8797;
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'IBM Plex Sans', sans-serif;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        h1, .logo, .super-cuota { font-family: var(--font-display); }
+        nav {
+            height:64px; display:flex; align-items:center; justify-content:space-between;
+            padding:0 32px; background:rgba(6,7,17,0.9); backdrop-filter:blur(20px);
+            border-bottom:1px solid var(--card-b);
+        }
+        .logo { font-size:20px; font-weight:900; text-decoration:none; color:var(--text); display:flex; align-items:center; gap:8px; }
+        .logo-icon { width:30px; height:30px; background:linear-gradient(135deg,var(--green),#7c3aed); border-radius:8px; display:flex; align-items:center; justify-content:center; }
+        .logo em { color:var(--green); font-style:normal; }
+        .nav-back {
+            color:var(--text2); text-decoration:none; font-size:14px; font-weight:600;
+            padding:8px 14px; border-radius:10px; border:1px solid var(--card-b);
+        }
+        .nav-back:hover { color:var(--green); border-color:rgba(0,232,122,0.35); }
+        .page { max-width:720px; margin:0 auto; padding:40px 24px 80px; }
+        .badge {
+            display:inline-flex; align-items:center; gap:8px;
+            background:var(--green-dim); border:1px solid rgba(0,232,122,0.3);
+            color:var(--green); padding:5px 14px; border-radius:50px;
+            font-size:12px; font-weight:600; margin-bottom:16px;
+        }
+        .title { font-size:clamp(26px,4vw,40px); font-weight:900; letter-spacing:-1px; margin-bottom:10px; }
+        .title .g { color:var(--green); }
+        .desc { color:var(--text2); font-size:15px; line-height:1.6; margin-bottom:28px; }
+        .hero {
+            text-align:center; padding:28px 20px; border-radius:20px;
+            background:linear-gradient(180deg, rgba(0,232,122,0.12), rgba(255,255,255,0.02));
+            border:1px solid rgba(0,232,122,0.28); margin-bottom:24px;
+        }
+        .hero-lbl { font-size:12px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:var(--text3); }
+        .super-cuota {
+            font-size:clamp(48px,10vw,72px); font-weight:900; color:var(--green);
+            line-height:1; margin:10px 0 8px; font-variant-numeric:tabular-nums;
+        }
+        .hero-meta { color:var(--text2); font-size:14px; }
+        .hero-meta strong { color:var(--text); }
+        .lista { display:flex; flex-direction:column; gap:12px; }
+        .item {
+            border:1px solid var(--card-b); background:var(--card); border-radius:16px;
+            padding:14px 16px;
+        }
+        .item-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:8px; }
+        .item-partido { font-weight:700; font-size:15px; }
+        .item-meta { font-size:12px; color:var(--text3); margin-top:2px; }
+        .item-cuota { font-family:monospace; font-size:22px; font-weight:900; color:var(--green); }
+        .patas { list-style:none; display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+        .pata { font-size:13px; color:var(--text2); }
+        .pata b { color:var(--text); font-weight:600; }
+        .nota { margin-top:28px; font-size:12px; color:var(--text3); line-height:1.6; text-align:center; }
+        .estado { text-align:center; padding:60px 20px; color:var(--text2); }
+        .estado .titulo { font-size:18px; font-weight:800; color:var(--text); margin-bottom:8px; font-family:var(--font-display); }
+        .btn {
+            display:inline-block; margin-top:16px; padding:10px 18px; border-radius:10px;
+            background:var(--green); color:#0b1a12; font-weight:700; text-decoration:none; font-size:14px;
+        }
+    </style>
+</head>
+<body>
+{% include '_icons.html' %}
+<nav>
+    <a href="/" class="logo">
+        <div class="logo-icon"><svg class="ico ico-lg" aria-hidden="true"><use href="#ico-balon"/></svg></div>
+        Futbolt<em>AI</em>
+    </a>
+    <a class="nav-back" href="/combinadas">← Volver a combinadas</a>
+</nav>
+
+<main class="page" id="contenido">
+    <div class="estado">
+        <div class="titulo">Cargando super cuota…</div>
+    </div>
+</main>
+
+<script>
+const KEY = 'futbolt_super_cuota';
+
+function render(data) {
+    const picks = (data && data.picks) || [];
+    const cont = document.getElementById('contenido');
+    if (picks.length < 2) {
+        cont.innerHTML = `
+            <div class="estado">
+                <div class="titulo">No hay selección suficiente</div>
+                Elige al menos 2 boletas en Cuotas Combinadas para ver la super cuota.
+                <br><a class="btn" href="/combinadas">Ir a combinadas</a>
+            </div>`;
+        return;
+    }
+
+    const cuota = picks.reduce((acc, p) => acc * Number(p.cuota || 1), 1);
+    const prob = picks.reduce((acc, p) => acc * (Number(p.probabilidad || 0) / 100), 1) * 100;
+
+    const items = picks.map((p, i) => `
+        <article class="item">
+            <div class="item-top">
+                <div>
+                    <div class="item-partido">${i + 1}. ${p.partido}</div>
+                    <div class="item-meta">${p.liga || ''}${p.hora ? ' · ' + p.hora : ''}</div>
+                </div>
+                <div class="item-cuota">${Number(p.cuota).toFixed(2)}</div>
+            </div>
+            <ul class="patas">
+                ${(p.selecciones || []).map(s => `
+                    <li class="pata"><b>${s.mercado}:</b> ${s.seleccion}</li>
+                `).join('')}
+            </ul>
+            <div class="item-meta" style="margin-top:8px">${Number(p.probabilidad).toFixed(1)}% prob. en este partido</div>
+        </article>
+    `).join('');
+
+    cont.innerHTML = `
+        <div class="badge">Acumulada · ${picks.length} partidos</div>
+        <h1 class="title">Super <span class="g">cuota</span></h1>
+        <p class="desc">
+            Producto de las cuotas justas de cada boleta seleccionada
+            (partidos distintos, tratados como independientes).
+        </p>
+        <div class="hero">
+            <div class="hero-lbl">Super cuota justa</div>
+            <div class="super-cuota">${cuota.toFixed(2)}</div>
+            <div class="hero-meta">
+                Prob. conjunta aprox. <strong>${prob.toFixed(2)}%</strong>
+                · ${picks.length} selecciones de partido
+            </div>
+        </div>
+        <div class="lista">${items}</div>
+        <p class="nota">
+            La probabilidad conjunta asume independencia entre partidos.
+            No es una garantía. Juega con responsabilidad · +18.
+        </p>
+    `;
+}
+
+try {
+    const raw = sessionStorage.getItem(KEY);
+    render(raw ? JSON.parse(raw) : null);
+} catch (e) {
+    document.getElementById('contenido').innerHTML = `
+        <div class="estado">
+            <div class="titulo">No se pudo leer la selección</div>
+            Vuelve a Cuotas Combinadas y vuelve a seleccionar las boletas.
+            <br><a class="btn" href="/combinadas">Ir a combinadas</a>
+        </div>`;
+}
+</script>
+</body>
+</html>
