@@ -938,15 +938,17 @@ def api_combos():
     on_render = bool(os.getenv("RENDER"))
     try:
         dias = max(1, min(int(request.args.get("dias", 1 if on_render else 3)), 7))
-        limite = max(1, min(int(request.args.get("limite", 12 if on_render else 20)), 24 if on_render else 40))
+        # Por defecto crece con el rango: si no, "3/5/7 días" se llenaba
+        # solo con los de hoy al cortar por limite fijo.
+        limite_def = max(12, min(8 * dias, 40))
+        limite = max(1, min(int(request.args.get("limite", limite_def)), 48))
     except (TypeError, ValueError):
         dias, limite = 1, 12
-    # En plan free acotar un poco el rango (memoria), pero permitir más partidos.
     if on_render:
-        dias = min(dias, 3)
-        limite = min(limite, 16)
+        # Permitir 7 días; el cupo total sigue acotado por memoria.
+        limite = min(limite, max(16, min(6 * dias, 28)))
 
-    n_sims = 800 if on_render else 8000
+    n_sims = (500 if dias >= 5 else 800) if on_render else 8000
     # Con RF desactivado en Render ya se puede usar raw + criterio de
     # alta probabilidad (como antes). Si falla, cae al legado seguro.
     usar_raw = True
@@ -957,7 +959,9 @@ def api_combos():
         for i in range(dias):
             fecha = (datetime.now() + timedelta(days=i)).strftime("%Y-%m-%d")
             try:
-                bloques = espn.get_matches_by_date(fecha)
+                # Hoy/mañana: ESPN + APIs; días siguientes solo ESPN (más rápido y
+                # API-Sports gratis no cubre más de ±1 día).
+                bloques = espn.get_matches_by_date(fecha, externas=(i <= 1))
             except Exception:
                 continue
             for b in bloques or []:
@@ -991,13 +995,39 @@ def api_combos():
                         "_fecha": fecha,
                     })
 
-        partidos.sort(key=lambda m: (
-            1 if m.get("_extra") else 0,
-            m.get("date") or m.get("_fecha") or "",
-        ))
+        # Cupo repartido por día: hoy+mañana+… en vez de solo los primeros N de hoy.
+        from collections import OrderedDict
+        buckets = OrderedDict()
+        for m in sorted(
+            partidos,
+            key=lambda x: (
+                x.get("_fecha") or "",
+                1 if x.get("_extra") else 0,
+                x.get("date") or "",
+            ),
+        ):
+            buckets.setdefault(m["_fecha"], []).append(m)
+
+        elegidos = []
+        if buckets:
+            n_dias = len(buckets)
+            base = max(1, limite // n_dias)
+            resto = max(0, limite - base * n_dias)
+            for i, lista in enumerate(buckets.values()):
+                cupo = base + (1 if i < resto else 0)
+                elegidos.extend(lista[:cupo])
+            if len(elegidos) < limite:
+                ya = set(id(m) for m in elegidos)
+                for m in (mm for lista in buckets.values() for mm in lista):
+                    if len(elegidos) >= limite:
+                        break
+                    if id(m) in ya:
+                        continue
+                    elegidos.append(m)
+                    ya.add(id(m))
 
         tarjetas = []
-        for m in partidos:
+        for m in elegidos:
             if len(tarjetas) >= limite:
                 break
             slug = m.get("_slug")
@@ -1064,14 +1094,21 @@ def api_combos():
                 "combinadas": combis_safe,
             })
 
-        # Partidos con la boleta más segura primero.
+        # Orden de pantalla: por fecha de partido, y dentro del día la más segura.
         tarjetas.sort(
-            key=lambda t: -(t["combinadas"][0]["probabilidad"] if t["combinadas"] else 0)
+            key=lambda t: (
+                t.get("fecha") or (t.get("kickoff") or "")[:10] or "",
+                t.get("kickoff") or "",
+                -(t["combinadas"][0]["probabilidad"] if t["combinadas"] else 0),
+            )
         )
 
+        fechas_cubiertas = sorted({t.get("fecha") for t in tarjetas if t.get("fecha")})
         return jsonify({
             "tarjetas": tarjetas,
             "dias": dias,
+            "fechas": fechas_cubiertas,
+            "candidatos": len(partidos),
             "total": len(tarjetas),
             "modo": "ligero" if on_render else "completo",
             "nota": "Cuota justa del modelo (100 / probabilidad), sin margen de casa. "

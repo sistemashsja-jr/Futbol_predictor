@@ -305,9 +305,10 @@ class ESPNFetcher:
         return {"league": data.get("name", ""), "entries": entries_out}
 
     # ── PARTIDOS POR FECHA (estilo SofaScore) ─────────────
-    def get_matches_by_date(self, date_str=None):
+    def get_matches_by_date(self, date_str=None, externas=True):
         """Partidos de TODAS las ligas para una fecha (YYYY-MM-DD).
-        Devuelve lista agrupada por liga."""
+        Devuelve lista agrupada por liga.
+        externas=False: solo ESPN (más rápido para rangos de varios días)."""
         if date_str:
             espn_date = date_str.replace("-", "")
         else:
@@ -331,12 +332,15 @@ class ESPNFetcher:
                         extras.append(block)
                     else:
                         results.append(block)
-            fecha_iso = date_str or datetime.now().strftime("%Y-%m-%d")
-            f_apisports = pool.submit(self._apisports_scoreboard, fecha_iso, espn_date == today)
-            f_isports = pool.submit(self._isports_scoreboard, fecha_iso, espn_date == today)
             extras += f_global.result()
-            api_blocks = f_apisports.result()
-            isports_blocks = f_isports.result()
+            api_blocks = []
+            isports_blocks = []
+            if externas:
+                fecha_iso = date_str or datetime.now().strftime("%Y-%m-%d")
+                f_apisports = pool.submit(self._apisports_scoreboard, fecha_iso, espn_date == today)
+                f_isports = pool.submit(self._isports_scoreboard, fecha_iso, espn_date == today)
+                api_blocks = f_apisports.result()
+                isports_blocks = f_isports.result()
 
         # quitar de fuentes externas los partidos que ESPN ya cubre:
         # mismo minuto de inicio (UTC) + nombre similar en local o visitante

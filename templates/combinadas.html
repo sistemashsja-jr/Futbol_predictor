@@ -500,7 +500,8 @@ async function cargar(dias = diasActivos) {
     });
 
     try {
-        const resp = await fetch(`/api/combos?dias=${dias}&limite=20`);
+        const limite = Math.min(40, Math.max(12, dias * 8));
+        const resp = await fetch(`/api/combos?dias=${dias}&limite=${limite}`);
         const raw = await resp.text();
         let d;
         try { d = JSON.parse(raw); }
@@ -528,8 +529,12 @@ async function cargar(dias = diasActivos) {
         }
 
         const nCombis = tarjetas.reduce((acc, t) => acc + (t.combinadas || []).length, 0);
+        const fechas = d.fechas || [];
+        const rangoTxt = fechas.length > 1
+            ? ` · ${fechas.length} fechas`
+            : (fechas.length === 1 ? ` · ${etiquetaFecha(fechas[0])}` : '');
         resumen.hidden = false;
-        resumen.innerHTML = `<strong>${tarjetas.length}</strong> partidos · <strong>${nCombis}</strong> boletas · toca una boleta para seleccionarla`;
+        resumen.innerHTML = `<strong>${tarjetas.length}</strong> partidos · <strong>${nCombis}</strong> boletas · rango ${dias} día${dias === 1 ? '' : 's'}${rangoTxt}`;
         cont.innerHTML = renderLista(tarjetas);
         cont.querySelectorAll('.boleto').forEach(btn => {
             btn.addEventListener('click', () => togglePick(btn));
