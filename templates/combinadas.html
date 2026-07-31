@@ -117,6 +117,12 @@
             transition: var(--tr-ui);
         }
         .boleto:hover { border-color:rgba(0,232,122,0.3); transform:translateY(-2px); }
+        .boleto-top { border-color:rgba(0,232,122,0.45); box-shadow:0 0 0 1px rgba(0,232,122,0.12); }
+        .boleto-segura {
+            display:inline-block; margin:8px 14px 0;
+            font-size:10px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase;
+            color:#0b1a12; background:var(--green); border-radius:20px; padding:2px 9px;
+        }
         .boleto-combi {
             font-size:10px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase;
             color:var(--green); background:rgba(0,232,122,0.1);
@@ -269,8 +275,11 @@ function claveDia(t) {
     return 'sin-fecha';
 }
 
-function tarjetaBoleto(cb) {
+function tarjetaBoleto(cb, idx) {
     const n = cb.selecciones.length;
+    const segura = idx === 0
+        ? '<span class="boleto-segura">Más segura</span>'
+        : '';
     const patas = cb.selecciones.map(s => `
         <li class="boleto-pata">
             <span class="boleto-punto" aria-hidden="true"></span>
@@ -280,8 +289,9 @@ function tarjetaBoleto(cb) {
             </span>
         </li>`).join('');
     return `
-        <article class="boleto">
+        <article class="boleto${idx === 0 ? ' boleto-top' : ''}">
             <span class="boleto-combi">${n} ${n === 1 ? 'selección' : 'selecciones'}</span>
+            ${segura}
             <ul class="boleto-patas">${patas}</ul>
             <div class="boleto-pie">
                 <span class="boleto-prob">${Number(cb.probabilidad).toFixed(1)}% prob.</span>
@@ -313,7 +323,7 @@ function bloqueMatch(t) {
                 ${puedeAbrirPredictor ? '<span class="match-bloque-flecha">›</span>' : ''}
             </${tagAbre}>
             <div class="combis-grid">
-                ${(t.combinadas || []).map(tarjetaBoleto).join('')}
+                ${(t.combinadas || []).map((cb, i) => tarjetaBoleto(cb, i)).join('')}
             </div>
         </div>`;
 }

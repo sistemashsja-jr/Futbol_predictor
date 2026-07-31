@@ -280,8 +280,11 @@ def combinadas_de(sim, home, away, raw=None, es_eliminatoria=False, maximo=8):
 
 
 def _combinadas_legado(sim, home, away, es_eliminatoria, maximo):
-    """Catálogo reducido (solo goles, vía score_matrix) para llamadores que
-    todavía no pasan `raw`. Mantiene el comportamiento anterior intacto."""
+    """Catálogo reducido (solo goles, vía score_matrix) priorizando ACIERTO.
+
+    Misma filosofía que el camino con `raw`: solo picks con alta probabilidad
+    (umbrales de confianza) y combinadas ordenadas de más segura a menos.
+    """
     matrix = sim.get("score_matrix") or {}
     if not matrix:
         return []
@@ -308,33 +311,62 @@ def _combinadas_legado(sim, home, away, es_eliminatoria, maximo):
             "2": ("Resultado", f"Gana {away}", lambda h, a: 1.0 if h < a else 0.0),
             "1X": ("Doble oportunidad", f"{home} o empate", lambda h, a: 1.0 if h >= a else 0.0),
             "X2": ("Doble oportunidad", f"{away} o empate", lambda h, a: 1.0 if h <= a else 0.0),
+            "12": ("Doble oportunidad", "Sin empate", lambda h, a: 1.0 if h != a else 0.0),
             "btts": ("Ambos marcan", "Sí", lambda h, a: 1.0 if h > 0 and a > 0 else 0.0),
+            "btts_no": ("Ambos marcan", "No", lambda h, a: 1.0 if h == 0 or a == 0 else 0.0),
+            "o05": ("Goles totales", "Más de 0.5", lambda h, a: 1.0 if h + a > 0.5 else 0.0),
             "o15": ("Goles totales", "Más de 1.5", lambda h, a: 1.0 if h + a > 1.5 else 0.0),
             "o25": ("Goles totales", "Más de 2.5", lambda h, a: 1.0 if h + a > 2.5 else 0.0),
+            "u15": ("Goles totales", "Menos de 1.5", lambda h, a: 1.0 if h + a < 1.5 else 0.0),
+            "u25": ("Goles totales", "Menos de 2.5", lambda h, a: 1.0 if h + a < 2.5 else 0.0),
+            "u35": ("Goles totales", "Menos de 3.5", lambda h, a: 1.0 if h + a < 3.5 else 0.0),
         }[tipo]
 
-    prob = sim["probabilities"]
-    res = max((("1", prob["home_win"]), ("X", prob["draw"]), ("2", prob["away_win"])), key=lambda t: t[1])[0]
-    doble = {"1": "1X", "X": "1X", "2": "X2"}[res]
-    goles_mas = sim["expected_values"]["home_goals"] + sim["expected_values"]["away_goals"] >= 2.6
+    def p_de(tipo):
+        return prob_conjunta([leg(tipo)[2]])
 
-    plantillas = [[doble, "o15"], ["btts", "o15"], [res, "o25" if goles_mas else "o15"], [res, "btts"]]
-    vistas, combis = set(), []
-    for tipos in plantillas:
-        clave = tuple(sorted(tipos))
-        if clave in vistas:
-            continue
-        vistas.add(clave)
-        pesos = [leg(t)[2] for t in tipos]
+    # Pick más confiable por familia, solo si supera el umbral.
+    picks = []  # (tipo, probabilidad)
+
+    def agregar(candidatas, umbral):
+        mejor, mejor_p = None, -1.0
+        for t in candidatas:
+            try:
+                p = p_de(t)
+            except KeyError:
+                continue
+            if p > mejor_p:
+                mejor, mejor_p = t, p
+        if mejor is not None and mejor_p >= umbral:
+            picks.append((mejor, mejor_p))
+
+    agregar(["1", "X", "2", "1X", "X2", "12"], UMBRAL_RESULTADO)
+    agregar(["o05", "o15", "o25", "u15", "u25", "u35"], UMBRAL_MERCADO)
+    agregar(["btts", "btts_no"], UMBRAL_MERCADO)
+
+    if not picks:
+        return []
+
+    # Más segura primero: apilar picks de mayor a menor probabilidad.
+    picks.sort(key=lambda x: -x[1])
+    candidatas, acumuladas = [], []
+    for tipo, _p in picks[:5]:
+        acumuladas.append(tipo)
+        pesos = [leg(t)[2] for t in acumuladas]
         p = prob_conjunta(pesos)
         if p < 1.0:
             continue
         cuota = round(100.0 / p, 2)
-        if not (1.30 <= cuota <= 41.0):
+        # Sin mínimo artificial: las más seguras (cuota baja) son válidas.
+        if cuota > 41.0:
             continue
-        combis.append({
-            "selecciones": [{"mercado": leg(t)[0], "seleccion": leg(t)[1]} for t in tipos],
-            "probabilidad": round(p, 1), "cuota": cuota,
+        candidatas.append({
+            "selecciones": [
+                {"mercado": leg(t)[0], "seleccion": leg(t)[1]} for t in acumuladas
+            ],
+            "probabilidad": round(p, 1),
+            "cuota": cuota,
         })
-    combis.sort(key=lambda c: -c["probabilidad"])
-    return combis[:maximo]
+
+    candidatas.sort(key=lambda c: -c["probabilidad"])
+    return candidatas[:maximo]

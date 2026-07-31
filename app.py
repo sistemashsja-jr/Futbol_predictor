@@ -940,8 +940,10 @@ def api_combos():
         dias = min(dias, 2)
         limite = min(limite, 5)
 
-    n_sims = 600 if on_render else 8000
-    usar_raw = not on_render
+    n_sims = 800 if on_render else 8000
+    # Con RF desactivado en Render ya se puede usar raw + criterio de
+    # alta probabilidad (como antes). Si falla, cae al legado seguro.
+    usar_raw = True
 
     try:
         partidos = []
@@ -999,6 +1001,7 @@ def api_combos():
             if not local or not visit:
                 continue
             try:
+                combis = []
                 if usar_raw:
                     sim, sim_raw = StatsEngine.simulate_match(
                         local, visit, simulations=n_sims, return_raw=True
@@ -1007,7 +1010,7 @@ def api_combos():
                         sim, local["name"], visit["name"], raw=sim_raw
                     )
                     del sim_raw
-                else:
+                if not combis:
                     sim = StatsEngine.simulate_match(
                         local, visit, simulations=n_sims, return_raw=False
                     )
@@ -1046,6 +1049,11 @@ def api_combos():
                 "tipo": "real",
                 "combinadas": combis_safe,
             })
+
+        # Partidos con la boleta más segura primero.
+        tarjetas.sort(
+            key=lambda t: -(t["combinadas"][0]["probabilidad"] if t["combinadas"] else 0)
+        )
 
         return jsonify({
             "tarjetas": tarjetas,
