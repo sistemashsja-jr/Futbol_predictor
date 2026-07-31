@@ -16,3 +16,7 @@ services:
         sync: false
       - key: FOOTBALL_DATA_API_KEY
         sync: false
+      - key: APISPORTS_API_KEY
+        sync: false
+      - key: ISPORTS_API_KEY
+        sync: false

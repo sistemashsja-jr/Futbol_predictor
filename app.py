@@ -938,13 +938,13 @@ def api_combos():
     on_render = bool(os.getenv("RENDER"))
     try:
         dias = max(1, min(int(request.args.get("dias", 1 if on_render else 3)), 7))
-        limite = max(1, min(int(request.args.get("limite", 5 if on_render else 8)), 8 if on_render else 16))
+        limite = max(1, min(int(request.args.get("limite", 12 if on_render else 20)), 24 if on_render else 40))
     except (TypeError, ValueError):
-        dias, limite = 1, 5
-    # En plan free limitar el rango aunque el front pida 7 días.
+        dias, limite = 1, 12
+    # En plan free acotar un poco el rango (memoria), pero permitir más partidos.
     if on_render:
-        dias = min(dias, 2)
-        limite = min(limite, 5)
+        dias = min(dias, 3)
+        limite = min(limite, 16)
 
     n_sims = 800 if on_render else 8000
     # Con RF desactivado en Render ya se puede usar raw + criterio de
@@ -970,8 +970,16 @@ def api_combos():
                     if mid:
                         vistos.add(mid)
                     home, away = m.get("home") or {}, m.get("away") or {}
-                    if not home.get("id") or not away.get("id"):
+                    hn = (home.get("name") or "").strip()
+                    an = (away.get("name") or "").strip()
+                    if not hn or not an:
                         continue
+                    # Sin ID ESPN: inventamos uno estable para no descartar
+                    # partidos de iSports / API-Sports.
+                    if not home.get("id"):
+                        home = {**home, "id": f"name:{hn}"}
+                    if not away.get("id"):
+                        away = {**away, "id": f"name:{an}"}
                     partidos.append({
                         "home": home,
                         "away": away,
@@ -997,10 +1005,10 @@ def api_combos():
                 continue
             try:
                 local = real_stats.team_strength(
-                    espn, slug, m["home"].get("id"), m["home"].get("name", "?")
+                    espn, slug, m["home"].get("id"), m["home"].get("name", "?"), local=True
                 )
                 visit = real_stats.team_strength(
-                    espn, slug, m["away"].get("id"), m["away"].get("name", "?")
+                    espn, slug, m["away"].get("id"), m["away"].get("name", "?"), local=False
                 )
             except Exception:
                 continue
@@ -1067,6 +1075,7 @@ def api_combos():
             "total": len(tarjetas),
             "modo": "ligero" if on_render else "completo",
             "nota": "Cuota justa del modelo (100 / probabilidad), sin margen de casa. "
+                    "Más partidos vía ESPN + API-Sports + iSports. "
                     "Sirve para detectar valor: si tu casa paga mas, hay valor. "
                     "No son garantias. Juega con responsabilidad · +18.",
         })

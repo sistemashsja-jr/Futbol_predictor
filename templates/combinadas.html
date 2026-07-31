@@ -500,7 +500,7 @@ async function cargar(dias = diasActivos) {
     });
 
     try {
-        const resp = await fetch(`/api/combos?dias=${dias}&limite=5`);
+        const resp = await fetch(`/api/combos?dias=${dias}&limite=20`);
         const raw = await resp.text();
         let d;
         try { d = JSON.parse(raw); }

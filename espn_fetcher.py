@@ -193,6 +193,19 @@ class ESPNFetcher:
         self.session.headers.update({"User-Agent": "Mozilla/5.0 (FootballPredictor)"})
         self.apisports_key = os.getenv("APISPORTS_API_KEY")
         self._apisports_ok = bool(self.apisports_key)  # se desactiva solo si da 401/403
+        # iSports (api.isportsapi.com) — distinto de API-Sports (api-sports.io)
+        self.isports_key = (
+            os.getenv("ISPORTS_API_KEY")
+            or os.getenv("ISPORTSAPI_API_KEY")
+            or ""
+        ).strip()
+        self._isports_ok = bool(self.isports_key)
+        self._isports_bases = (
+            "https://api.isportsapi.com",
+            "https://api2.isportsapi.com",
+            "http://api.isportsapi.com",
+            "http://api2.isportsapi.com",
+        )
 
     # ── caché simple con TTL ──────────────────────────────
     def _get(self, url, ttl=300):
@@ -318,11 +331,14 @@ class ESPNFetcher:
                         extras.append(block)
                     else:
                         results.append(block)
-            f_apisports = pool.submit(self._apisports_scoreboard, date_str or datetime.now().strftime("%Y-%m-%d"), espn_date == today)
+            fecha_iso = date_str or datetime.now().strftime("%Y-%m-%d")
+            f_apisports = pool.submit(self._apisports_scoreboard, fecha_iso, espn_date == today)
+            f_isports = pool.submit(self._isports_scoreboard, fecha_iso, espn_date == today)
             extras += f_global.result()
             api_blocks = f_apisports.result()
+            isports_blocks = f_isports.result()
 
-        # quitar de API-Football los partidos que ESPN ya cubre:
+        # quitar de fuentes externas los partidos que ESPN ya cubre:
         # mismo minuto de inicio (UTC) + nombre similar en local o visitante
         espn_idx = {}
         for b in results + extras:
@@ -340,9 +356,14 @@ class ESPNFetcher:
                     return True
             return False
 
-        for b in api_blocks:
+        for b in api_blocks + isports_blocks:
             b["matches"] = [m for m in b["matches"] if not es_duplicado(m)]
             if b["matches"]:
+                for m in b["matches"]:
+                    tk = (m.get("date") or "")[:16]
+                    espn_idx.setdefault(tk, []).append(
+                        (self._norm_name(m["home"]["name"]), self._norm_name(m["away"]["name"]))
+                    )
                 extras.append(b)
 
         # orden fijo según el Excel, luego las demás competiciones del día
@@ -431,16 +452,31 @@ class ESPNFetcher:
             goals = fx.get("goals", {})
             teams = fx.get("teams", {})
             th, ta = teams.get("home", {}), teams.get("away", {})
+            fid = fx.get("fixture", {}).get("id")
+            hid = th.get("id")
+            aid = ta.get("id")
             match = {
-                "id": f"as{fx.get('fixture', {}).get('id')}",
+                "id": f"as{fid}",
                 "date": fx.get("fixture", {}).get("date", ""),
                 "state": state,
                 "status_text": st.get("long", "") if state != "in" else f"{st.get('elapsed', '')}'",
                 "completed": state == "post",
-                "home": {"name": th.get("name", "?"), "short": th.get("name", ""), "id": None,
-                         "logo": th.get("logo", ""), "score": goals.get("home"), "winner": th.get("winner", False)},
-                "away": {"name": ta.get("name", "?"), "short": ta.get("name", ""), "id": None,
-                         "logo": ta.get("logo", ""), "score": goals.get("away"), "winner": ta.get("winner", False)},
+                "home": {
+                    "name": th.get("name", "?"),
+                    "short": th.get("name", ""),
+                    "id": f"apisports:{hid}" if hid else f"apisports:h:{fid}",
+                    "logo": th.get("logo", ""),
+                    "score": goals.get("home"),
+                    "winner": th.get("winner", False),
+                },
+                "away": {
+                    "name": ta.get("name", "?"),
+                    "short": ta.get("name", ""),
+                    "id": f"apisports:{aid}" if aid else f"apisports:a:{fid}",
+                    "logo": ta.get("logo", ""),
+                    "score": goals.get("away"),
+                    "winner": ta.get("winner", False),
+                },
                 "venue": (fx.get("fixture", {}).get("venue") or {}).get("name", ""),
             }
             key = (country, lname)
@@ -460,6 +496,170 @@ class ESPNFetcher:
                 "matches": matches,
             })
         return blocks
+
+    def _isports_get(self, path, params, ttl=1800):
+        """GET a iSports (api / api2). Devuelve data[] o None."""
+        if not self._isports_ok:
+            return None
+        q = {"api_key": self.isports_key, **params}
+        cache_key = f"isports:{path}:{sorted((k, v) for k, v in params.items())}"
+        now = time.time()
+        hit = self._cache.get(cache_key)
+        if hit and now - hit[0] < ttl:
+            return hit[1]
+        last_err = None
+        for base in self._isports_bases:
+            url = f"{base}{path}"
+            try:
+                r = self.session.get(url, params=q, timeout=20)
+                if r.status_code in (401, 403):
+                    print(f"iSports desactivada (HTTP {r.status_code}): revisa ISPORTS_API_KEY")
+                    self._isports_ok = False
+                    return None
+                r.raise_for_status()
+                payload = r.json()
+                code = payload.get("code")
+                if code not in (0, "0", None):
+                    msg = str(payload.get("message") or payload.get("msg") or code)
+                    low = msg.lower()
+                    if "api_key" in low or "invalid" in low or "unauthorized" in low:
+                        print(f"iSports desactivada: {msg}")
+                        self._isports_ok = False
+                        return None
+                    print(f"iSports error [{path}]: {msg}")
+                    last_err = msg
+                    continue
+                data = payload.get("data")
+                if data is None:
+                    data = []
+                self._cache[cache_key] = (now, data)
+                return data
+            except Exception as e:
+                last_err = e
+                continue
+        if last_err:
+            print(f"iSports error [{path}]: {last_err}")
+        return hit[1] if hit else None
+
+    @staticmethod
+    def _isports_state(status):
+        """Mapa status iSports → pre/in/post."""
+        try:
+            st = int(status)
+        except (TypeError, ValueError):
+            return "pre"
+        if st == 0:
+            return "pre"
+        if st in (1, 2, 3, 4, 5):
+            return "in"
+        if st == -1:
+            return "post"
+        # cancelado / aplazado / TBD…
+        if st <= -10:
+            return "post"
+        return "pre"
+
+    def _isports_rows_to_blocks(self, rows):
+        """Convierte filas livescores/schedule iSports a bloques tipo ESPN."""
+        groups = {}
+        for row in rows or []:
+            mid = row.get("matchId") or row.get("match_id")
+            home_name = row.get("homeName") or row.get("home_name") or "?"
+            away_name = row.get("awayName") or row.get("away_name") or "?"
+            if not mid or home_name == "?" or away_name == "?":
+                continue
+            state = self._isports_state(row.get("status"))
+            mt = row.get("matchTime") or row.get("match_time") or 0
+            try:
+                mt = int(mt)
+            except (TypeError, ValueError):
+                mt = 0
+            date_iso = (
+                datetime.fromtimestamp(mt, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                if mt else ""
+            )
+            hid = row.get("homeId") or row.get("home_id")
+            aid = row.get("awayId") or row.get("away_id")
+            hs = row.get("homeScore", row.get("home_score"))
+            aws = row.get("awayScore", row.get("away_score"))
+            league = row.get("leagueName") or row.get("league_name") or "iSports"
+            league_id = str(row.get("leagueId") or row.get("league_id") or "0")
+            minute = ((row.get("extraExplain") or {}) or {}).get("minute")
+            status_text = ""
+            if state == "in" and minute:
+                status_text = f"{minute}'"
+            elif state == "pre":
+                status_text = "No iniciado"
+            elif state == "post":
+                status_text = "Finalizado"
+            match = {
+                "id": f"isports:{mid}",
+                "date": date_iso,
+                "state": state,
+                "status_text": status_text,
+                "completed": state == "post",
+                "home": {
+                    "name": home_name,
+                    "short": home_name,
+                    "id": f"isports:{hid}" if hid else f"isports:h:{mid}",
+                    "logo": "",
+                    "score": hs,
+                    "winner": False,
+                },
+                "away": {
+                    "name": away_name,
+                    "short": away_name,
+                    "id": f"isports:{aid}" if aid else f"isports:a:{mid}",
+                    "logo": "",
+                    "score": aws,
+                    "winner": False,
+                },
+                "venue": row.get("location") or "",
+            }
+            key = (league_id, league)
+            groups.setdefault(key, []).append(match)
+
+        blocks = []
+        for (league_id, league), matches in groups.items():
+            matches.sort(key=lambda m: m["date"] or "")
+            blocks.append({
+                "slug": f"isports:{league_id}",
+                "league": league,
+                "country": "Internacional",
+                "flag": "🌍",
+                "extra": True,
+                "isports": True,
+                "matches": matches,
+            })
+        return blocks
+
+    def _isports_scoreboard(self, date_str, is_today):
+        """Partidos vía iSports: livescores (hoy) + schedule/basic (fecha)."""
+        if not self._isports_ok:
+            return []
+        ttl = 900 if is_today else 3600
+        rows = []
+        seen = set()
+
+        def add_rows(chunk):
+            for row in chunk or []:
+                mid = str(row.get("matchId") or row.get("match_id") or "")
+                if not mid or mid in seen:
+                    continue
+                seen.add(mid)
+                rows.append(row)
+
+        # Hoy: livescores trae más campos (homeId/awayId, corners…).
+        if is_today:
+            add_rows(self._isports_get("/sport/football/livescores", {}, ttl=ttl))
+
+        # Cualquier fecha (GMT+0): schedule básico.
+        add_rows(self._isports_get(
+            "/sport/football/schedule/basic",
+            {"date": date_str},
+            ttl=ttl,
+        ))
+        return self._isports_rows_to_blocks(rows)
 
     def _global_scoreboard(self, espn_date, ttl):
         """Todas las demás competiciones del día (amistosos, copas,

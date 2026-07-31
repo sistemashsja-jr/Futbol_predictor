@@ -772,7 +772,7 @@ async function cargar() {
             fetch('/api/quiniela?dias=4&limite=7').then(r => r.json()),
             fetch('/api/accuracy').then(r => r.json()),
             fetch('/api/combo_selecciones?local=Inglaterra&visitante=Argentina').then(r => r.json()),
-            fetch('/api/combos?limite=5').then(r => r.json())
+            fetch('/api/combos?limite=12').then(r => r.json())
         ]);
         pintarQuiniela(q.partidos || []);
         pintarMedicion(a);
