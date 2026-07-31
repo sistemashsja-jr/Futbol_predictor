@@ -222,8 +222,8 @@
     </div>
 
     <div class="filtros" role="group" aria-label="Rango de días">
-        <button type="button" class="filtro-btn" data-dias="1">Hoy</button>
-        <button type="button" class="filtro-btn active" data-dias="3">3 días</button>
+        <button type="button" class="filtro-btn active" data-dias="1">Hoy</button>
+        <button type="button" class="filtro-btn" data-dias="3">3 días</button>
         <button type="button" class="filtro-btn" data-dias="5">5 días</button>
         <button type="button" class="filtro-btn" data-dias="7">7 días</button>
     </div>
@@ -242,7 +242,7 @@
 </main>
 
 <script>
-let diasActivos = 3;
+let diasActivos = 1;
 
 function horaPartido(iso) {
     if (!iso) return '';
@@ -346,12 +346,17 @@ async function cargar(dias = diasActivos) {
     });
 
     try {
-        const resp = await fetch(`/api/combos?dias=${dias}&limite=8`);
+        const resp = await fetch(`/api/combos?dias=${dias}&limite=5`);
         const raw = await resp.text();
         let d;
         try { d = JSON.parse(raw); }
-        catch (_) { throw new Error(`Respuesta no JSON (HTTP ${resp.status})`); }
-        if (!resp.ok) throw new Error(d.error || `HTTP ${resp.status}`);
+        catch (_) {
+            throw new Error(
+                `El servidor no respondió bien (HTTP ${resp.status}). ` +
+                `Prueba el filtro "Hoy" o espera 1 minuto si el servicio se despertaba.`
+            );
+        }
+        if (!resp.ok) throw new Error(d.error || (`HTTP ${resp.status}`));
 
         const tarjetas = d.tarjetas || [];
         if (!tarjetas.length) {
@@ -387,7 +392,7 @@ document.querySelectorAll('.filtro-btn').forEach(btn => {
     btn.addEventListener('click', () => cargar(Number(btn.dataset.dias)));
 });
 
-cargar(3);
+cargar(1);
 </script>
 <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
