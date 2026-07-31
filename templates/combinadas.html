@@ -346,7 +346,7 @@ async function cargar(dias = diasActivos) {
     });
 
     try {
-        const resp = await fetch(`/api/combos?dias=${dias}&limite=12`);
+        const resp = await fetch(`/api/combos?dias=${dias}&limite=8`);
         const raw = await resp.text();
         let d;
         try { d = JSON.parse(raw); }

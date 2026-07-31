@@ -920,111 +920,142 @@ def api_quiniela():
 @app.route('/api/combos')
 def api_combos():
     """Apuestas combinadas con cuota justa del modelo, sobre partidos reales."""
-    from datetime import datetime, timedelta
-    from concurrent.futures import ThreadPoolExecutor
-    import real_stats, combos as C
-    from stats_engine import StatsEngine
+    try:
+        from datetime import datetime, timedelta
+        from concurrent.futures import ThreadPoolExecutor
+        import real_stats, combos as C
+        from stats_engine import StatsEngine
 
-    dias = max(1, min(int(request.args.get('dias', 5)), 10))
-    limite = max(1, min(int(request.args.get('limite', 12)), 24))
-    n_sims = 2500 if os.getenv("RENDER") else 8000
-
-    partidos = []
-    vistos = set()
-    for i in range(dias):
-        fecha = (datetime.now() + timedelta(days=i)).strftime('%Y-%m-%d')
+        on_render = bool(os.getenv("RENDER"))
         try:
-            bloques = espn.get_matches_by_date(fecha)
-        except Exception:
-            continue
-        for b in bloques or []:
-            # Preferir ligas principales; si no hay, también extras (amistosos, etc.).
-            for m in b.get('matches', []):
-                if m.get('state') != 'pre':
-                    continue
-                mid = str(m.get('id') or '')
-                if mid and mid in vistos:
-                    continue
-                if mid:
-                    vistos.add(mid)
-                if not m.get('home', {}).get('id') or not m.get('away', {}).get('id'):
-                    continue
-                m['_slug'] = b['slug']
-                m['_league'] = b['league']
-                m['_flag'] = b.get('flag', '')
-                m['_extra'] = bool(b.get('extra'))
-                m['_fecha'] = fecha
-                partidos.append(m)
+            dias = max(1, min(int(request.args.get('dias', 3)), 7))
+            limite = max(1, min(int(request.args.get('limite', 8)), 12 if on_render else 24))
+        except (TypeError, ValueError):
+            dias, limite = 3, 8
 
-    # Primero ligas principales, luego el resto; ordenados por kickoff.
-    partidos.sort(key=lambda m: (1 if m.get('_extra') else 0, m.get('date') or m.get('_fecha') or ''))
+        n_sims = 1200 if on_render else 8000
 
-    # Cache de fuerza en paralelo (mismo patrón que quiniela).
-    equipos = {}
-    for m in partidos[: limite * 4]:  # margen por si algunos fallan
-        for lado in ('home', 'away'):
-            tid = m[lado].get('id')
-            if tid:
-                equipos[(m['_slug'], str(tid))] = m[lado].get('name', '?')
-
-    fuerzas = {}
-    workers = 6 if os.getenv("RENDER") else 12
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futuros = {
-            pool.submit(real_stats.team_strength, espn, slug, tid, nombre): (slug, tid)
-            for (slug, tid), nombre in equipos.items()
-        }
-        for fut, clave in futuros.items():
+        partidos = []
+        vistos = set()
+        for i in range(dias):
+            fecha = (datetime.now() + timedelta(days=i)).strftime('%Y-%m-%d')
             try:
-                fuerzas[clave] = fut.result()
+                bloques = espn.get_matches_by_date(fecha)
             except Exception:
-                fuerzas[clave] = None
+                continue
+            for b in bloques or []:
+                for m in b.get('matches', []):
+                    if m.get('state') != 'pre':
+                        continue
+                    mid = str(m.get('id') or '')
+                    if mid and mid in vistos:
+                        continue
+                    if mid:
+                        vistos.add(mid)
+                    home, away = m.get('home') or {}, m.get('away') or {}
+                    if not home.get('id') or not away.get('id'):
+                        continue
+                    partidos.append({
+                        'home': home,
+                        'away': away,
+                        'date': m.get('date'),
+                        '_slug': b.get('slug'),
+                        '_league': b.get('league'),
+                        '_flag': b.get('flag', ''),
+                        '_extra': bool(b.get('extra')),
+                        '_fecha': fecha,
+                    })
 
-    tarjetas = []
-    for m in partidos:
-        local = fuerzas.get((m['_slug'], str(m['home'].get('id'))))
-        visit = fuerzas.get((m['_slug'], str(m['away'].get('id'))))
-        if not local or not visit:
-            continue
-        try:
-            sim, sim_raw = StatsEngine.simulate_match(
-                local, visit, simulations=n_sims, return_raw=True
-            )
-            combis = C.combinadas_de(sim, local['name'], visit['name'], raw=sim_raw)
-        except Exception:
-            continue
-        if not combis:
-            continue
-        tarjetas.append({
-            'home': {
-                'name': local['name'],
-                'logo': m['home'].get('logo'),
-                'id': m['home'].get('id'),
-            },
-            'away': {
-                'name': visit['name'],
-                'logo': m['away'].get('logo'),
-                'id': m['away'].get('id'),
-            },
-            'liga': m['_league'],
-            'league_slug': m['_slug'],
-            'kickoff': m.get('date'),
-            'fecha': m.get('_fecha'),
-            'flag': m.get('_flag', ''),
-            'tipo': 'real',
-            'combinadas': combis,
+        partidos.sort(key=lambda m: (
+            1 if m.get('_extra') else 0,
+            m.get('date') or m.get('_fecha') or '',
+        ))
+
+        # En Render: menos candidatos y menos paralelismo (512 MB).
+        margen = 2 if on_render else 4
+        candidatos = partidos[: max(limite * margen, limite)]
+
+        equipos = {}
+        for m in candidatos:
+            for lado in ('home', 'away'):
+                tid = m[lado].get('id')
+                if tid and m.get('_slug'):
+                    equipos[(m['_slug'], str(tid))] = m[lado].get('name', '?')
+
+        fuerzas = {}
+        workers = 2 if on_render else 12
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futuros = {
+                pool.submit(real_stats.team_strength, espn, slug, tid, nombre): (slug, tid)
+                for (slug, tid), nombre in equipos.items()
+            }
+            for fut, clave in futuros.items():
+                try:
+                    fuerzas[clave] = fut.result(timeout=25 if on_render else 60)
+                except Exception:
+                    fuerzas[clave] = None
+
+        tarjetas = []
+        for m in candidatos:
+            local = fuerzas.get((m['_slug'], str(m['home'].get('id'))))
+            visit = fuerzas.get((m['_slug'], str(m['away'].get('id'))))
+            if not local or not visit:
+                continue
+            try:
+                sim, sim_raw = StatsEngine.simulate_match(
+                    local, visit, simulations=n_sims, return_raw=True
+                )
+                combis = C.combinadas_de(sim, local['name'], visit['name'], raw=sim_raw)
+            except Exception:
+                continue
+            if not combis:
+                continue
+            # Serialización segura (sin numpy).
+            combis_safe = []
+            for cb in combis:
+                combis_safe.append({
+                    'selecciones': cb.get('selecciones') or [],
+                    'probabilidad': float(cb.get('probabilidad') or 0),
+                    'cuota': float(cb.get('cuota') or 0),
+                })
+            tarjetas.append({
+                'home': {
+                    'name': local['name'],
+                    'logo': m['home'].get('logo'),
+                    'id': m['home'].get('id'),
+                },
+                'away': {
+                    'name': visit['name'],
+                    'logo': m['away'].get('logo'),
+                    'id': m['away'].get('id'),
+                },
+                'liga': m['_league'],
+                'league_slug': m['_slug'],
+                'kickoff': m.get('date'),
+                'fecha': m.get('_fecha'),
+                'flag': m.get('_flag', ''),
+                'tipo': 'real',
+                'combinadas': combis_safe,
+            })
+            if len(tarjetas) >= limite:
+                break
+
+        return jsonify({
+            'tarjetas': tarjetas,
+            'dias': dias,
+            'total': len(tarjetas),
+            'nota': 'Cuota justa del modelo (100 / probabilidad), sin margen de casa. '
+                    'Sirve para detectar valor: si tu casa paga más, hay valor. '
+                    'No son garantías. Juega con responsabilidad · +18.',
         })
-        if len(tarjetas) >= limite:
-            break
-
-    return jsonify({
-        'tarjetas': tarjetas,
-        'dias': dias,
-        'total': len(tarjetas),
-        'nota': 'Cuota justa del modelo (100 / probabilidad), sin margen de casa. '
-                'Sirve para detectar valor: si tu casa paga más, hay valor. '
-                'No son garantías. Juega con responsabilidad · +18.',
-    })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'tarjetas': [],
+            'total': 0,
+            'error': f'Error al calcular combinadas: {e}',
+        }), 500
 
 
 @app.route('/api/combo_selecciones')
