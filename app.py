@@ -932,26 +932,30 @@ def api_combos():
     """
     import gc
     from datetime import datetime, timedelta
+    from collections import OrderedDict
     import real_stats, combos as C
     from stats_engine import StatsEngine
 
     on_render = bool(os.getenv("RENDER"))
     try:
         dias = max(1, min(int(request.args.get("dias", 1 if on_render else 3)), 7))
-        # Por defecto crece con el rango: si no, "3/5/7 días" se llenaba
-        # solo con los de hoy al cortar por limite fijo.
-        limite_def = max(12, min(8 * dias, 40))
-        limite = max(1, min(int(request.args.get("limite", limite_def)), 48))
+        limite_def = max(8, min(6 * dias, 24))
+        limite = max(1, min(int(request.args.get("limite", limite_def)), 32))
     except (TypeError, ValueError):
-        dias, limite = 1, 12
+        dias, limite = 1, 8
     if on_render:
-        # Permitir 7 días; el cupo total sigue acotado por memoria.
-        limite = min(limite, max(16, min(6 * dias, 28)))
-
-    n_sims = (500 if dias >= 5 else 800) if on_render else 8000
-    # Con RF desactivado en Render ya se puede usar raw + criterio de
-    # alta probabilidad (como antes). Si falla, cae al legado seguro.
-    usar_raw = True
+        # Cupo bajo: evitar OOM/timeout (el scoreboard completo + RF ya tumbaron
+        # el worker antes). Reparto por día sigue activo.
+        limite = min(limite, max(6, min(4 * dias, 14)))
+        n_sims = 350
+        usar_raw = False
+        usar_estimado = True
+        ligero = True
+    else:
+        n_sims = 8000
+        usar_raw = True
+        usar_estimado = False
+        ligero = dias > 3
 
     try:
         partidos = []
@@ -959,10 +963,15 @@ def api_combos():
         for i in range(dias):
             fecha = (datetime.now() + timedelta(days=i)).strftime("%Y-%m-%d")
             try:
-                # Hoy/mañana: ESPN + APIs; días siguientes solo ESPN (más rápido y
-                # API-Sports gratis no cubre más de ±1 día).
-                bloques = espn.get_matches_by_date(fecha, externas=(i <= 1))
-            except Exception:
+                # Hoy/mañana: ESPN + APIs; días siguientes solo ESPN.
+                # En Render: modo ligero (ligas principales) para no timeout.
+                bloques = espn.get_matches_by_date(
+                    fecha,
+                    externas=(i <= 1),
+                    ligero=ligero or i > 0,
+                )
+            except Exception as e:
+                print(f"/api/combos scoreboard {fecha}: {e}")
                 continue
             for b in bloques or []:
                 for m in b.get("matches", []):
@@ -978,8 +987,6 @@ def api_combos():
                     an = (away.get("name") or "").strip()
                     if not hn or not an:
                         continue
-                    # Sin ID ESPN: inventamos uno estable para no descartar
-                    # partidos de iSports / API-Sports.
                     if not home.get("id"):
                         home = {**home, "id": f"name:{hn}"}
                     if not away.get("id"):
@@ -995,8 +1002,6 @@ def api_combos():
                         "_fecha": fecha,
                     })
 
-        # Cupo repartido por día: hoy+mañana+… en vez de solo los primeros N de hoy.
-        from collections import OrderedDict
         buckets = OrderedDict()
         for m in sorted(
             partidos,
@@ -1017,7 +1022,7 @@ def api_combos():
                 cupo = base + (1 if i < resto else 0)
                 elegidos.extend(lista[:cupo])
             if len(elegidos) < limite:
-                ya = set(id(m) for m in elegidos)
+                ya = {id(m) for m in elegidos}
                 for m in (mm for lista in buckets.values() for mm in lista):
                     if len(elegidos) >= limite:
                         break
@@ -1034,12 +1039,20 @@ def api_combos():
             if not slug:
                 continue
             try:
-                local = real_stats.team_strength(
-                    espn, slug, m["home"].get("id"), m["home"].get("name", "?"), local=True
-                )
-                visit = real_stats.team_strength(
-                    espn, slug, m["away"].get("id"), m["away"].get("name", "?"), local=False
-                )
+                if usar_estimado:
+                    local = real_stats.team_strength_estimado(
+                        m["home"].get("name", "?"), local=True
+                    )
+                    visit = real_stats.team_strength_estimado(
+                        m["away"].get("name", "?"), local=False
+                    )
+                else:
+                    local = real_stats.team_strength(
+                        espn, slug, m["home"].get("id"), m["home"].get("name", "?"), local=True
+                    )
+                    visit = real_stats.team_strength(
+                        espn, slug, m["away"].get("id"), m["away"].get("name", "?"), local=False
+                    )
             except Exception:
                 continue
             if not local or not visit:
@@ -1094,7 +1107,6 @@ def api_combos():
                 "combinadas": combis_safe,
             })
 
-        # Orden de pantalla: por fecha de partido, y dentro del día la más segura.
         tarjetas.sort(
             key=lambda t: (
                 t.get("fecha") or (t.get("kickoff") or "")[:10] or "",
@@ -1116,6 +1128,12 @@ def api_combos():
                     "Sirve para detectar valor: si tu casa paga mas, hay valor. "
                     "No son garantias. Juega con responsabilidad · +18.",
         })
+    except MemoryError:
+        return jsonify({
+            "tarjetas": [],
+            "total": 0,
+            "error": "Memoria insuficiente en el servidor. Prueba solo 'Hoy'.",
+        }), 503
     except Exception as e:
         import traceback
         traceback.print_exc()

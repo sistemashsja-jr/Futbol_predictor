@@ -500,7 +500,7 @@ async function cargar(dias = diasActivos) {
     });
 
     try {
-        const limite = Math.min(40, Math.max(12, dias * 8));
+        const limite = Math.min(24, Math.max(8, dias * 5));
         const resp = await fetch(`/api/combos?dias=${dias}&limite=${limite}`);
         const raw = await resp.text();
         let d;
@@ -508,7 +508,8 @@ async function cargar(dias = diasActivos) {
         catch (_) {
             throw new Error(
                 `El servidor no respondió bien (HTTP ${resp.status}). ` +
-                `Prueba el filtro "Hoy" o espera 1 minuto si el servicio se despertaba.`
+                `Suele ser falta de memoria o timeout en el plan free. ` +
+                `Espera ~1 min y prueba de nuevo con "Hoy".`
             );
         }
         if (!resp.ok) throw new Error(d.error || (`HTTP ${resp.status}`));

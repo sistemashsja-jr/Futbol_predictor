@@ -305,10 +305,11 @@ class ESPNFetcher:
         return {"league": data.get("name", ""), "entries": entries_out}
 
     # ── PARTIDOS POR FECHA (estilo SofaScore) ─────────────
-    def get_matches_by_date(self, date_str=None, externas=True):
+    def get_matches_by_date(self, date_str=None, externas=True, ligero=False):
         """Partidos de TODAS las ligas para una fecha (YYYY-MM-DD).
         Devuelve lista agrupada por liga.
-        externas=False: solo ESPN (más rápido para rangos de varios días)."""
+        externas=False: solo ESPN (más rápido para rangos de varios días).
+        ligero=True: solo ligas principales + scoreboard global (menos carga)."""
         if date_str:
             espn_date = date_str.replace("-", "")
         else:
@@ -317,12 +318,13 @@ class ESPNFetcher:
         today = datetime.now().strftime("%Y%m%d")
         ttl = 60 if espn_date == today else 600
 
+        slugs = list(LEAGUES) if ligero else list(LEAGUES) + list(SECONDARY_LEAGUES)
         results = []
         extras = []
-        with ThreadPoolExecutor(max_workers=16) as pool:
+        with ThreadPoolExecutor(max_workers=12 if ligero else 16) as pool:
             futures = {
                 pool.submit(self._league_scoreboard, slug, espn_date, ttl): slug
-                for slug in list(LEAGUES) + list(SECONDARY_LEAGUES)
+                for slug in slugs
             }
             f_global = pool.submit(self._global_scoreboard, espn_date, ttl)
             for fut in as_completed(futures):
@@ -332,48 +334,56 @@ class ESPNFetcher:
                         extras.append(block)
                     else:
                         results.append(block)
-            extras += f_global.result()
+            extras += f_global.result() or []
             api_blocks = []
             isports_blocks = []
             if externas:
                 fecha_iso = date_str or datetime.now().strftime("%Y-%m-%d")
                 f_apisports = pool.submit(self._apisports_scoreboard, fecha_iso, espn_date == today)
                 f_isports = pool.submit(self._isports_scoreboard, fecha_iso, espn_date == today)
-                api_blocks = f_apisports.result()
-                isports_blocks = f_isports.result()
+                api_blocks = f_apisports.result() or []
+                isports_blocks = f_isports.result() or []
 
         # quitar de fuentes externas los partidos que ESPN ya cubre:
         # mismo minuto de inicio (UTC) + nombre similar en local o visitante
         espn_idx = {}
         for b in results + extras:
-            for m in b["matches"]:
+            for m in (b.get("matches") or []):
+                home = (m.get("home") or {})
+                away = (m.get("away") or {})
+                if not home.get("name") or not away.get("name"):
+                    continue
                 tk = (m.get("date") or "")[:16]
                 espn_idx.setdefault(tk, []).append(
-                    (self._norm_name(m["home"]["name"]), self._norm_name(m["away"]["name"])))
+                    (self._norm_name(home["name"]), self._norm_name(away["name"])))
 
         def es_duplicado(m):
+            home = (m.get("home") or {})
+            away = (m.get("away") or {})
             tk = (m.get("date") or "")[:16]
-            nh = self._norm_name(m["home"]["name"])
-            na = self._norm_name(m["away"]["name"])
+            nh = self._norm_name(home.get("name"))
+            na = self._norm_name(away.get("name"))
             for eh, ea in espn_idx.get(tk, []):
                 if self._similar(nh, eh) or self._similar(na, ea):
                     return True
             return False
 
         for b in api_blocks + isports_blocks:
-            b["matches"] = [m for m in b["matches"] if not es_duplicado(m)]
+            b["matches"] = [m for m in (b.get("matches") or []) if not es_duplicado(m)]
             if b["matches"]:
                 for m in b["matches"]:
+                    home = m.get("home") or {}
+                    away = m.get("away") or {}
                     tk = (m.get("date") or "")[:16]
                     espn_idx.setdefault(tk, []).append(
-                        (self._norm_name(m["home"]["name"]), self._norm_name(m["away"]["name"]))
+                        (self._norm_name(home.get("name")), self._norm_name(away.get("name")))
                     )
                 extras.append(b)
 
         # orden fijo según el Excel, luego las demás competiciones del día
         order = list(LEAGUES.keys())
-        results.sort(key=lambda b: order.index(b["slug"]))
-        extras.sort(key=lambda b: (b["country"], b["league"]))
+        results.sort(key=lambda b: order.index(b["slug"]) if b.get("slug") in order else 999)
+        extras.sort(key=lambda b: (b.get("country") or "", b.get("league") or ""))
         return results + extras
 
     @staticmethod
