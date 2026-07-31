@@ -935,6 +935,10 @@ def api_combos():
         limite = max(1, min(int(request.args.get("limite", 5 if on_render else 8)), 8 if on_render else 16))
     except (TypeError, ValueError):
         dias, limite = 1, 5
+    # En plan free limitar el rango aunque el front pida 7 días.
+    if on_render:
+        dias = min(dias, 2)
+        limite = min(limite, 5)
 
     n_sims = 600 if on_render else 8000
     usar_raw = not on_render
@@ -1009,6 +1013,7 @@ def api_combos():
                     )
                     combis = C.combinadas_de(sim, local["name"], visit["name"])
             except Exception:
+                combis = []
                 continue
             finally:
                 gc.collect()

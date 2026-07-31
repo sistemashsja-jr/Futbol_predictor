@@ -413,19 +413,38 @@ class StatsEngine:
         odds_over25 = round(100.0 / prob_over_2_5_goals, 2)
         odds_btts = round(100.0 / prob_btts, 2)
         
-        # Proyecciones ML (Random Forest)
-        ml_pred = cls.predict_advanced(
-            home_rating, away_rating,
-            home_form_score, away_form_score,
-            home_goals_base, away_goals_base,
-            home_corners_base, away_corners_base,
-            home_shots_base, away_shots_base,
-            home_cards_base, away_cards_base,
-            home_goalkicks_base, away_goalkicks_base,
-            home_throwins_base, away_throwins_base,
-            home_saves_base, away_saves_base,
-            home_total_shots_base, away_total_shots_base
-        )
+        # Proyecciones ML (Random Forest). En Render (512 MB) entrenar 8 RF
+        # tumba el worker → HTTP 500 HTML en /api/combos y predicciones.
+        # Ahí usamos las medias de la propia Monte Carlo como proyección.
+        import os as _os
+        if _os.getenv("RENDER") or simulations <= 1500:
+            expected_goalkicks = round(float(total_goalkicks_sim.mean()), 1)
+            expected_throwins = round(float(total_throwins_sim.mean()), 1)
+            expected_saves = round(float(total_saves_sim.mean()), 1)
+            expected_total_shots_mc = round(float(total_total_shots_sim.mean()), 1)
+            ml_pred = {
+                "ml_goals": round(expected_home_goals + expected_away_goals, 2),
+                "ml_corners": expected_corners,
+                "ml_shots": expected_shots,
+                "ml_total_shots": expected_total_shots_mc,
+                "ml_cards": expected_cards,
+                "ml_goalkicks": expected_goalkicks,
+                "ml_throwins": expected_throwins,
+                "ml_saves": expected_saves,
+            }
+        else:
+            ml_pred = cls.predict_advanced(
+                home_rating, away_rating,
+                home_form_score, away_form_score,
+                home_goals_base, away_goals_base,
+                home_corners_base, away_corners_base,
+                home_shots_base, away_shots_base,
+                home_cards_base, away_cards_base,
+                home_goalkicks_base, away_goalkicks_base,
+                home_throwins_base, away_throwins_base,
+                home_saves_base, away_saves_base,
+                home_total_shots_base, away_total_shots_base
+            )
         
         # Calcular probabilidades de Over/Under para Tiros al Arco (SOT)
         prob_over_7_5_shots = max(0.1, round(float((total_shots_sim > 7).mean() * 100), 1))
